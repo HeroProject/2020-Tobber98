@@ -1,1 +1,0 @@
-2020 Artificial Intelligence Bachelor Thesis
