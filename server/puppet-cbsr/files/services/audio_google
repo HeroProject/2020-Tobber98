@@ -1,0 +1,9 @@
+[Unit]
+Description=CBSR Google Audio
+After=multi-user.target
+
+[Service]
+ExecStart=/opt/processing/audio_google/run_google.sh > /var/log/cbsr_audio_google.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

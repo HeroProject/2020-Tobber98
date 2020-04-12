@@ -1,0 +1,9 @@
+[Unit]
+Description=CBSR Emotion Detection
+After=multi-user.target
+
+[Service]
+ExecStart=/opt/processing/video_emotion/run_emotion.sh > /var/log/cbsr_video_emotion.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

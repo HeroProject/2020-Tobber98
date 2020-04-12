@@ -1,0 +1,9 @@
+[Unit]
+Description=CBSR Web Server
+After=multi-user.target
+
+[Service]
+ExecStart=/opt/processing/webserver/run_webserver.sh > /var/log/cbsr_webserver.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

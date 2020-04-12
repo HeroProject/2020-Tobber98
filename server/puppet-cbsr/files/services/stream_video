@@ -1,0 +1,9 @@
+[Unit]
+Description=CBSR Stream Video
+After=multi-user.target
+
+[Service]
+ExecStart=/opt/output/stream_video/run_stream.sh > /var/log/cbsr_stream_video.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

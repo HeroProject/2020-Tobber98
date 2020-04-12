@@ -1,0 +1,1 @@
+java -jar computer-speakers.jar 192.168.56.102 ./ ../../processing/webserver

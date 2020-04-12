@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+SERVER=unknown
+
+pip install redis hiredis wget --user --upgrade
+
+cd "$(dirname "$0")"
+for f in *.pid; do
+  if [ -f "$f" ]; then
+    echo "Found running processes; please execute stop.sh first!"
+    exit 1
+  fi
+done
+
+nohup python -u action_consumer.py --server "$SERVER" > action_consumer.log 2>&1 & echo $! > action_consumer.pid
+nohup python -u event_producer.py --server "$SERVER" > event_producer.log 2>&1 & echo $! > event_producer.pid
+nohup python -u robot_sound_processing.py --server "$SERVER" > robot_sound_processing.log 2>&1 & echo $! > robot_sound_processing.pid
+nohup python -u visual_producer.py --server "$SERVER" > visual_producer.log 2>&1 & echo $! > visual_producer.pid
+nohup python -u tablet_consumer.py --server "$SERVER" > tablet_consumer.log 2>&1 & echo $! > tablet_consumer.pid

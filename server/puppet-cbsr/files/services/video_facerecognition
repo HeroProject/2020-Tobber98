@@ -1,0 +1,9 @@
+[Unit]
+Description=CBSR Face Recognition
+After=multi-user.target
+
+[Service]
+ExecStart=/opt/processing/video_facerecognition/run_face.sh > /var/log/cbsr_video_facerecognition.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

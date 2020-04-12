@@ -1,0 +1,9 @@
+[Unit]
+Description=CBSR Web Search
+After=multi-user.target
+
+[Service]
+ExecStart=/opt/processing/websearch/run_webrequests.sh > /var/log/cbsr_websearch.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=CBSR People Detection
+After=multi-user.target
+
+[Service]
+ExecStart=/opt/processing/video_peopledetection/run_person.sh > /var/log/cbsr_video_peopledetection.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

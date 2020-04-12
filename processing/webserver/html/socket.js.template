@@ -1,0 +1,56 @@
+var socket = null;
+$(function() {
+	socket = new WebSocket('ws://127.0.0.1:8001');
+	socket.onopen = function() {
+    	$(document.body).html('*');
+    	socket.send('*');
+	};
+	socket.onmessage = function(event) {
+		var data = JSON.parse(event.data);
+		if( data.channel == 'render_html' ) {
+			$(document.body).html(data.message);
+			updateListeningIcon('');
+			vuLogo();
+			activateButtons();
+		} else if( data.channel == 'action_audio' ) {
+			updateListeningIcon(data.message);
+		} else if( data.channel == 'text_speech' || data.channel == 'text_transcript' ) {
+			updateSpeechText(data.message);
+		} else {
+			alert(data.channel + ': ' + data.message);
+		}
+	};
+	socket.onerror = function(error) {
+		if( error.message ) {
+			alert(error.message);
+		}
+	};
+});	
+$(window).on('unload', function() {
+	socket.terminate();
+});
+var iconStyle = 'style="height:10vh"';
+function updateListeningIcon(input) {
+	var listeningIcon = $('.listening_icon');
+	if( input == 'start listening' ) {
+		listeningIcon.html('<img src="img/listening.png" '+iconStyle+'>');
+		updateSpeechText(''); // clear it
+	} else {
+		listeningIcon.html('<img src="img/not_listening.png" '+iconStyle+'>');		
+	}
+}
+function updateSpeechText(input) {
+	var speechText = $('.speech_text');
+	speechText.html(input);
+}
+function vuLogo() {
+	var vuLogo = $('.vu_logo');
+	vuLogo.html('<img src="img/vu_logo.jpg" '+iconStyle+'>')
+}
+function activateButtons() {
+	var buttons = $(':button');
+	buttons.click(function() {
+		var buttonValue = $(this).html();
+		socket.send(buttonValue);
+	});
+}
