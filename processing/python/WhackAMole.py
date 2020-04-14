@@ -20,13 +20,25 @@ class WhackAMole(Base.AbstractApplication):
     def create_mole(self):
         time.sleep(self.generate_random(.2, 2)) # could be lock instead of sleep
         self.current_button = self.buttons[random.randrange(0, 4)]
+        
+        #Say the the button to press
+        word_to_say = ""
+        if self.current_button == "bl":
+            word_to_say = "Linkervoet!"
+        elif self.current_button == "br":
+            word_to_say = "Rechtervoet!"
+        elif self.current_button == "tl":
+            word_to_say = "Linkerhand!"
+        else:
+            word_to_say = "Rechterhand!"
+        self.say(word_to_say)
+        self.speechLock.acquire()
+
         print(self.current_button)
-        # Turn on the leds of the defined button on the robot and check for button presses on the robot for a certain amount of time.
-        # Listen for input
-        new_input = "br" # would normally be the pushed button
-        if new_input == self.current_button:
+        
+        self.buttonLock.acquire(timeout=self.generate_random(1,2))
+        if self.current_button == self.button_pressed:
             return True
-        time.sleep(self.generate_random(1, 2))
         return False
 
     def start(self):
@@ -40,6 +52,7 @@ class WhackAMole(Base.AbstractApplication):
         self.say("Laten we beginnen. Sla alles wat oplicht.")
         self.speechLock.acquire()
 
+        self.buttonLock = Semaphore(0)
         while(True):
             hit = self.create_mole()
             if hit:
@@ -56,6 +69,12 @@ class WhackAMole(Base.AbstractApplication):
             self.langLock.release()
         if event == "TextDone":
             self.speechLock.release()
+        self.buttons2 = ["RightBumperPressed", "LeftBumperPressed", "BackBumperPressed", "FrontTactilTouched",
+        "MiddleTactilTouched", "RearTactilTouched", "HandRightBackTouched", "HandRightLeftTouched", 
+        "HandRightRightTouched", "HandLeftLeftTouched", "HandLeftRightTouched", "HandLeftBackTouched"]
+        if event in self.buttons2:
+            self.button_pressed = event
+            self.buttonLock.release()
 
 wam = WhackAMole()
 wam.start()
