@@ -6,6 +6,7 @@ import time
 class WhackAMole(Base.AbstractApplication):
     def __init__(self):
         super(WhackAMole, self).__init__(serverIP='192.168.56.102')
+        # super(WhackAMole, self).__init__(serverIP='127.0.0.1')
         self.score = 0
         self.speedup = 0
         self.buttons = ["bl", "br", "tl", "tr"] # Could potentially do head as well
