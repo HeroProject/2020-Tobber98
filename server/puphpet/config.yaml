@@ -23,18 +23,18 @@ vagrantfile:
                         id: default
                         hostname: cbsr.dev
                         network:
-                            #public_network: 1
-                            private_network: 192.168.56.102
-                            forwarded_port:
-                                port1:
-                                    host: '6379'
-                                    guest: '6379'
-                                port2:
-                                    host: '8000'
-                                    guest: '8000'
-                                port3:
-                                    host: '8001'
-                                    guest: '8001'
+                            public_network: 1
+                            # private_network: 192.168.56.102
+                            # forwarded_port:
+                            #     port1:
+                            #         host: '6379'
+                            #         guest: '6379'
+                            #     port2:
+                            #         host: '8000'
+                            #         guest: '8000'
+                            #     port3:
+                            #         host: '8001'
+                            #         guest: '8001'
                         memory: '4096'
                         cpus: '2'
         provision:

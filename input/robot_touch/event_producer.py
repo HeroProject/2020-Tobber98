@@ -43,7 +43,7 @@ class ReactToEvent(object):
         self.hand_right_right_touched_id = self.hand_right_right_touched.signal.connect(functools.partial(self.handRightRightTouched, 'HandRightRightTouched'))
         self.hand_left_left_touched_id = self.hand_left_left_touched.signal.connect(functools.partial(self.handLeftLeftTouched, 'HandLeftLeftTouched'))
         self.hand_left_right_touched_id = self.hand_left_right_touched.signal.connect(functools.partial(self.handLeftRightTouched, 'HandLeftRightTouched'))
-        self.hand_left_back_touched_id = self.hand_left_right_touched.signal.connect(functools.partial(self.handLeftBackTouched, 'HandLeftBackTouched'))
+        self.hand_left_back_touched_id = self.hand_left_back_touched.signal.connect(functools.partial(self.handLeftBackTouched, 'HandLeftBackTouched'))
         #self.sound_detected_id = self.sound_detected.signal.connect(functools.partial(self.soundDetected, 'SoundDetected'))
 
         # Initialise Redis

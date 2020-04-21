@@ -23,7 +23,7 @@ class AbstractApplication(object):
             if message is not None:
                 channel = message['channel'].decode()
                 data = message['data'].decode()
-                print("received " + data + " on " + channel)
+                # print("received " + data + " on " + channel)
                 if channel == self.__topics[0]:
                     self.onRobotEvent(event=data)
                 elif channel == self.__topics[1]:
@@ -48,7 +48,7 @@ class AbstractApplication(object):
 
     def __send(self, channel, data):
         self.__redis.publish(channel, data)
-        print("sent " + data + " on " + channel)
+        # print("sent " + data + " on " + channel)
 
     def stop(self):
         """Stop listening to incoming events (which is done in a thread) so the Python application can close."""
