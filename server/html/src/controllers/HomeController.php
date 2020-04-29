@@ -33,8 +33,8 @@ class HomeController
         echo "Creating configuration files for $myIp...\n";
         echo self::exec('sudo cp -f /opt/processing/webserver/html/socket.js.template /opt/processing/webserver/html/socket.js && echo "OK (1/4)"');
         echo self::exec("sudo sed -i \"s/127.0.0.1/$myIp/\" /opt/processing/webserver/html/socket.js && echo \"OK (2/4)\"");
-        echo self::exec('sudo cp -f /var/puppet-cbsr/files/start.sh.template /var/puppet-cbsr/files/start.sh && echo "OK (3/4)"');
-        echo self::exec("sudo sed -i \"s/unknown/$myIp/\" /var/puppet-cbsr/files/start.sh && echo \"OK (4/4)\"");
+        echo self::exec('sudo cp -f /opt/input/robot_scripts/start.sh.template /opt/input/robot_scripts/start.sh && echo "OK (3/4)"');
+        echo self::exec("sudo sed -i \"s/unknown/$myIp/\" /opt/input/robot_scripts/start.sh && echo \"OK (4/4)\"");
 
         // LAN IP-address of the Nao/Pepper (if used)
         if (empty($robotIp) || filter_var($robotIp, FILTER_VALIDATE_IP)) {
@@ -52,14 +52,15 @@ class HomeController
             echo "Copying files to the robot using the given IP and password...\n";
             echo self::exec("sudo sshpass -p $robotPass ssh $o nao@$robotIp \"mkdir -p /home/nao/cbsr\" && echo \"OK (1/4)\"");
             echo self::exec("files=();
+files+=(\"$(find /opt/input -name \"cert.pem\")\");
+files+=(\"$(find /opt/input/robot_scripts -name \"start.sh\")\");
+files+=(\"$(find /opt/input/robot_scripts -name \"stop.sh\")\");
 files+=(\"$(find /opt/input/robot_microphone -name \"robot_sound_processing.py\")\");
 files+=(\"$(find /opt/input/robot_camera -name \"visual_producer.py\")\");
 files+=(\"$(find /opt/input/robot_touch -name \"event_producer.py\")\");
 files+=(\"$(find /opt/output/robot_actions -name \"action_consumer.py\")\");
 files+=(\"$(find /opt/output/robot_tablet -name \"tablet.py\")\");
 files+=(\"$(find /opt/output/robot_tablet -name \"tablet_consumer.py\")\");
-files+=(\"$(find /var/puppet-cbsr/files -name \"start.sh\")\");
-files+=(\"$(find /var/puppet-cbsr/files -name \"stop.sh\")\");
 sudo sshpass -p $robotPass scp $o -p \"\${files[@]}\" nao@$robotIp:/home/nao/cbsr/ && echo \"OK (2/4)\"");
             echo self::exec("sudo sshpass -p $robotPass ssh $o nao@$robotIp bash --login -c /home/nao/cbsr/stop.sh && echo \"OK (3/4)\"");
             echo self::exec("sudo sshpass -p $robotPass ssh $o nao@$robotIp bash --login -c /home/nao/cbsr/start.sh && echo \"OK (4/4)\"");

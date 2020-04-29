@@ -22,6 +22,11 @@ class supervisord::params {
               $init_script   = '/etc/systemd/system/supervisord.service'
               $init_defaults = false
             }
+            '8': {
+              $init_type     = 'systemd'
+              $init_script   = '/etc/systemd/system/supervisord.service'
+              $init_defaults = false
+            }
             default: {
               $init_type     = 'init'
               $init_script   = '/etc/init.d/supervisord'
@@ -91,7 +96,7 @@ class supervisord::params {
 
   # default supervisord params
   $package_ensure          = 'installed'
-  $package_provider        = 'pip'
+  $package_provider        = 'yum'
   $package_install_options = undef
   $service_manage          = true
   $service_ensure          = 'running'

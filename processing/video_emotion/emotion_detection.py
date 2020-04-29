@@ -79,8 +79,8 @@ def process_frame(frame, client):
         except:
             continue
 
-def main(server):
-    client = redis.Redis(host=server)
+def main(server, ssl):
+    client = redis.Redis(host=server, ssl=ssl, ssl_ca_certs='../cert.pem')
 
     # Wait for an image_size to be set
     im_size_string = None
@@ -91,7 +91,7 @@ def main(server):
     while im_size_string is None:
         msg = client.get('image_size')
         if msg is None:
-            time.sleep(0)
+            time.sleep(0.001)
         else:
             im_size_string = msg
             im_width = int(im_size_string[0:4])
@@ -105,7 +105,7 @@ def main(server):
             newframe = int(newframe)
         if newframe != 0 and newframe <= frame:
             #print 'no image'
-            time.sleep(0)
+            time.sleep(0.001)
             continue
         frame = newframe
 
@@ -119,6 +119,7 @@ def main(server):
 if __name__ == '__main__':
     parser =  argparse.ArgumentParser()
     parser.add_argument('--server', type=str, default='localhost', help='Server IP address. Default is localhost.')
+    parser.add_argument('--no-ssl', action='store_true', default=False, help='Use this flag to disable the use of SSL.')
     args = parser.parse_args()
 
-    main(args.server)
+    main(args.server, not args.no_ssl)

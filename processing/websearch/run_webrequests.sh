@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
 
-if ! command -v python &> /dev/null; then
-  echo "Python not in path."
+if ! command -v python2 &> /dev/null; then
+  echo "Python2 not in path."
   exit 1
 fi
 
@@ -19,7 +19,7 @@ cleanup() {
 
 trap cleanup INT TERM
 
-python api_methods.py &
+python2 api_methods.py &
 requests_pid=$!
 echo "Web Requests running (pid $requests_pid)"
 echo "Press Ctrl-C to stop."

@@ -17,7 +17,7 @@ class SoundProcessingModule(object):
         #self.audio_service.enableEnergyComputation()
         self.module_name = 'SoundProcessingModule'
 
-        self.redis = redis.Redis(host=server)
+        self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe('action_audio')
 
@@ -28,7 +28,7 @@ class SoundProcessingModule(object):
         if msg is not None:
             self.execute(msg)
         else:
-            time.sleep(0)
+            time.sleep(0.001)
 
     def execute(self, message):
         data = message['data'] # only subscribed to 1 topic

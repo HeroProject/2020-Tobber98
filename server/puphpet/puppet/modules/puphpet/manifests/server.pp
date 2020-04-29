@@ -2,7 +2,6 @@ class puphpet::server {
 
   include ::puphpet::params
   include ::git
-  include ::ntp
   include ::swap_file
 
   $server = $puphpet::params::hiera['server']

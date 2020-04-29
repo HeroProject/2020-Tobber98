@@ -26,8 +26,8 @@ def draw_faces(frame, faces):
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
         cv2.rectangle(frame, (left, bottom - 1), (right, bottom), (0, 0, 255), cv2.FILLED)
 
-def main(server, debug):
-    client = redis.Redis(host=server)
+def main(server, ssl, debug):
+    client = redis.Redis(host=server, ssl=ssl, ssl_ca_certs='../cert.pem')
     pubsub = client.pubsub(ignore_subscribe_messages=True)
     pubsub.subscribe('action_take_picture')
 
@@ -40,7 +40,7 @@ def main(server, debug):
     while im_size_string is None:
         msg = client.get('image_size')
         if msg is None:
-            time.sleep(0)
+            time.sleep(0.001)
         else:
             im_size_string = msg
             im_width = int(im_size_string[0:4])
@@ -48,7 +48,7 @@ def main(server, debug):
 
     while True:
         #timestamp1 = time.time()
-        
+
         newframe = client.get('image_frame')
         if newframe is None:
             newframe = -1
@@ -56,7 +56,7 @@ def main(server, debug):
             newframe = int(newframe)
         if newframe != 0 and newframe <= frame:
             #print 'no image'
-            time.sleep(0)
+            time.sleep(0.001)
             continue
         frame = newframe
 
@@ -85,7 +85,8 @@ def main(server, debug):
         #print
 
         if faces:
-            print 'detected_person'
+            if debug:
+                print 'detected_person'
             client.publish('detected_person', '')
 
         if debug:
@@ -103,7 +104,8 @@ def main(server, debug):
 if __name__ == '__main__':
     parser =  argparse.ArgumentParser()
     parser.add_argument('--server', type=str, default='localhost', help='Server IP address. Default is localhost.')
-    parser.add_argument('--debug', type=str, default=False, help='Illustrate the detection.')
+    parser.add_argument('--no-ssl', action='store_true', default=False, help='Use this flag to disable the use of SSL.')
+    parser.add_argument('--debug', action='store_true', default=False, help='Use this flag to enable several debug statements and drawings.')
     args = parser.parse_args()
 
-    main(args.server, args.debug)
+    main(args.server, not args.no_ssl, args.debug)

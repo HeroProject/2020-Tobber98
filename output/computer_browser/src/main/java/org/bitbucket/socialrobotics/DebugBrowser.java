@@ -1,6 +1,10 @@
-
 package org.bitbucket.socialrobotics;
 
+import java.util.prefs.Preferences;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
@@ -13,24 +17,46 @@ import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.Protocol;
 
 public class DebugBrowser extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private static final String[] topics = new String[] { "tablet_control", "tablet_audio", "tablet_image",
 			"tablet_video", "tablet_web" };
 	private final String server;
+	private final boolean ssl;
 	private WebEngine engine;
 
 	public static void main(final String... args) {
+		final Preferences prefs = Preferences.userRoot().node("cbsr");
+		final String server = (args.length > 0) ? args[0]
+				: JOptionPane.showInputDialog("Server IP", prefs.get("server", ""));
+		prefs.put("server", server);
+
+		System.setProperty("javax.net.ssl.trustStore", "../truststore.jks");
+		System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
 		System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
-		final String server = (args.length > 0) ? args[0] : JOptionPane.showInputDialog("Server IP");
-		final DebugBrowser browser = new DebugBrowser(server);
-		browser.run();
+
+		try {
+			final DebugBrowser browser = new DebugBrowser(server);
+			browser.run();
+		} catch (final Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 	}
 
 	public DebugBrowser(final String server) {
 		super("CBSR Browser");
 		this.server = server;
+		this.ssl = !this.server.equals("192.168.99.100");
+
+		HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+			@Override
+			public boolean verify(final String hostname, final SSLSession session) {
+				return true;
+			}
+		});
 
 		final JFXPanel jfxPanel = new JFXPanel();
 		WebConsoleListener.setDefaultListener(new WebConsoleListener() {
@@ -45,6 +71,8 @@ public class DebugBrowser extends JFrame {
 			public void run() {
 				final WebView view = new WebView();
 				DebugBrowser.this.engine = view.getEngine();
+				DebugBrowser.this.engine.setOnError(event -> System.err.println(event.getMessage()));
+				DebugBrowser.this.engine.setOnAlert(event -> System.out.println(event.getData()));
 				final Scene scene = new Scene(view);
 				jfxPanel.setScene(scene);
 			}
@@ -57,7 +85,8 @@ public class DebugBrowser extends JFrame {
 	}
 
 	public void run() {
-		try (final Jedis redis = new Jedis(this.server)) {
+		try (final Jedis redis = new Jedis(this.server, Protocol.DEFAULT_PORT, this.ssl)) {
+			redis.ping();
 			System.out.println("Subscribing to " + this.server);
 			redis.subscribe(new JedisPubSub() {
 				@Override
@@ -106,7 +135,7 @@ public class DebugBrowser extends JFrame {
 	}
 
 	private String getURL(final String type, final String content) {
-		final String base = "http://" + this.server + ":8000/" + type;
+		final String base = "https://" + this.server + ":8000/" + type;
 		return (content == null) ? base : (base + "/" + content);
 	}
 }

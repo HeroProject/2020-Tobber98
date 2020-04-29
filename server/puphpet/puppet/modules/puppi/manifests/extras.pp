@@ -10,12 +10,6 @@ class puppi::extras {
 
   # Default Checks
 
-  puppi::check { 'NTP_Sync':
-    command  => "check_ntp -H ${puppi::params::ntp}" ,
-    priority => '99' ,
-    hostwide => 'yes' ,
-  }
-
   puppi::check { 'Disks_Usage':
     command  => 'check_disk -w 20% -c 10% -L -X tmpfs' ,
     priority => '10' ,

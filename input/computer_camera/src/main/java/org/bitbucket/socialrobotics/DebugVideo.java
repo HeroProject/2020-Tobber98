@@ -16,6 +16,7 @@ import java.awt.image.Raster;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.nio.ByteBuffer;
+import java.util.prefs.Preferences;
 
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
@@ -29,6 +30,7 @@ import com.github.sarxos.webcam.WebcamPanel.ImageSupplier;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.Protocol;
 
 public class DebugVideo extends JFrame implements ImageSupplier {
 	private static final long serialVersionUID = 1L;
@@ -36,6 +38,7 @@ public class DebugVideo extends JFrame implements ImageSupplier {
 	private static final byte[] videotopic = "image_stream".getBytes();
 	private static final String frametopic = "image_frame";
 	private final String server;
+	private final boolean ssl;
 	private final Webcam webcam;
 	private final WebcamPanel display;
 	private final JFrame popup;
@@ -45,14 +48,27 @@ public class DebugVideo extends JFrame implements ImageSupplier {
 	private long frame = 0;
 
 	public static void main(final String... args) {
-		final String server = (args.length > 0) ? args[0] : JOptionPane.showInputDialog("Server IP");
-		final DebugVideo video = new DebugVideo(server);
-		video.run();
+		final Preferences prefs = Preferences.userRoot().node("cbsr");
+		final String server = (args.length > 0) ? args[0]
+				: JOptionPane.showInputDialog("Server IP", prefs.get("server", ""));
+		prefs.put("server", server);
+
+		System.setProperty("javax.net.ssl.trustStore", "../truststore.jks");
+		System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+
+		try {
+			final DebugVideo video = new DebugVideo(server);
+			video.run();
+		} catch (final Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 	}
 
 	public DebugVideo(final String server) {
 		super("CBSR Video");
 		this.server = server;
+		this.ssl = !this.server.equals("192.168.99.100");
 
 		this.webcam = Webcam.getDefault();
 		this.webcam.setViewSize(new Dimension(width, height));
@@ -93,7 +109,7 @@ public class DebugVideo extends JFrame implements ImageSupplier {
 	}
 
 	public void run() {
-		try (final Jedis redis = new Jedis(this.server)) {
+		try (final Jedis redis = new Jedis(this.server, Protocol.DEFAULT_PORT, this.ssl)) {
 			redis.set("image_size", width + " " + height);
 			System.out.println("Subscribing to " + this.server);
 			redis.subscribe(new JedisPubSub() {
@@ -139,7 +155,7 @@ public class DebugVideo extends JFrame implements ImageSupplier {
 		private final Jedis redis;
 
 		RedisWebcamSync() {
-			this.redis = new Jedis(DebugVideo.this.server);
+			this.redis = new Jedis(DebugVideo.this.server, Protocol.DEFAULT_PORT, DebugVideo.this.ssl);
 			this.redis.connect();
 		}
 

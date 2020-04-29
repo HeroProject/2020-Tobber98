@@ -53,8 +53,6 @@ class puppi::params  {
     default           => 'mailx',
   }
 
-  $ntp = 'pool.ntp.org'
-
 # Mcollective paths
 # TODO: Add Paths for Puppet Enterprise:
 # /opt/puppet/libexec/mcollective/mcollective/

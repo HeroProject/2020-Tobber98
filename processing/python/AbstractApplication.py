@@ -10,7 +10,7 @@ class AbstractApplication(object):
                 "text_speech", "picture_newfile"]
 
     def __init__(self, serverIP):
-        self.__redis = redis.Redis(serverIP)
+        self.__redis = redis.Redis(serverIP, ssl=True, ssl_ca_certs='../cert.pem')
         self.__pubsub = self.__redis.pubsub(ignore_subscribe_messages=True)
         self.__pubsub.subscribe(*self.__topics)
         t = Thread(target=self.__listen)

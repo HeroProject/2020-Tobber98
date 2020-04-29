@@ -22,7 +22,6 @@ class puphpet::python::pip {
   }
   -> exec { 'Install pip':
     command => "curl -s https://bootstrap.pypa.io/get-pip.py | python",
-    unless  => 'which pip',
   }
 
   if $::osfamily == 'RedHat' {

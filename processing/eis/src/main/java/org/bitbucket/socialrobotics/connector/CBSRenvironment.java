@@ -1,5 +1,6 @@
 package org.bitbucket.socialrobotics.connector;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,6 +40,16 @@ public class CBSRenvironment extends EIDefaultImpl {
 	protected RedisRunner producer;
 	protected volatile boolean tabletConnected = false;
 
+	public CBSRenvironment() {
+		try {
+			final File jar = new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
+			System.setProperty("javax.net.ssl.trustStore", jar.getParent() + "/truststore.jks");
+			System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+		} catch (final Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	@Override
 	public void init(final Map<String, Parameter> parameters) throws ManagementException {
 		super.init(parameters);
@@ -47,9 +58,10 @@ public class CBSRenvironment extends EIDefaultImpl {
 		setState(EnvironmentState.PAUSED);
 
 		final String server = getParameter("server", "localhost");
-		this.consumer = new RedisConsumerRunner(this, server);
+		final boolean ssl = !getParameter("ssl", "").equals("false");
+		this.consumer = new RedisConsumerRunner(this, server, ssl);
 		this.consumer.start();
-		this.producer = new RedisProducerRunner(this, server);
+		this.producer = new RedisProducerRunner(this, server, ssl);
 		this.producer.start();
 
 		final String flowkey = getParameter("flowkey", "");

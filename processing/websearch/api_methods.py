@@ -10,7 +10,7 @@ import time
 from threading import Thread
 
 class api_methods:
-    def __init__(self, server):
+    def __init__(self, server, ssl):
         # Keys for the various APIs
         self.last_fm_key = '7f822dc0e77dcd89dffb383a67d59c7b'
         self.imgur_key = '84ceaa883eb2b1f'
@@ -52,7 +52,7 @@ class api_methods:
         }
 
         # Initialise Redis
-        self.redis = redis.Redis(host=server)
+        self.redis = redis.Redis(host=server, ssl=ssl, ssl_ca_certs='../cert.pem')
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe('action_webrequest')
 
@@ -62,7 +62,7 @@ class api_methods:
             t = Thread(target=self.get_content, args=(msg['data'],))
             t.start()
         else:
-            time.sleep(0)
+            time.sleep(0.001)
 
     def produce(self, url, text):
         self.redis.publish('webrequest_response', url + '|' + text)
@@ -125,10 +125,10 @@ class api_methods:
         elif type(result) != list:
             result = [result]
 
-        print subtopic + " & " + query
+        print subtopic + ' & ' + query
         print result
         url = 'https://www.dictionary.com/e/wp-content/uploads/2018/08/disappointed-face.png'
-        text = "Oops. I'm sorry, I can't find what I was planning to show you."
+        text = 'Oops. I'm sorry, I can't find what I was planning to show you.'
         for i in result:
             try:
                 if validators.url(i) == True:
@@ -176,7 +176,7 @@ class api_methods:
             artist_name = track.get('artist').get('name')
             track_name = track.get('name')
             if randomized == False:
-                pepper_text = "Considering you're into " + genre + " music, you may like this song by " + artist_name + '. It is called ' + track_name + '.'
+                pepper_text = 'Considering you\'re into ' + genre + ' music, you may like this song by ' + artist_name + '. It is called ' + track_name + '.'
             else:
                 pepper_text = 'You may like this song by ' + artist_name + '. It is called ' + track_name + '.'
             track_url = track.get('url')
@@ -193,7 +193,7 @@ class api_methods:
             'api_key': self.last_fm_key,
             'format': 'json'
         }
-        response = requests.get("http://ws.audioscrobbler.com/2.0/", params=params)
+        response = requests.get('http://ws.audioscrobbler.com/2.0/', params=params)
         try:
             artists = response.json().get('similarartists').get('artist')
         except Exception:
@@ -262,9 +262,9 @@ class api_methods:
             title = photo.get('title')
             # text = 'This photo is titled: ' + title
             if randomized == False:
-                text = 'Since you enjoy ' + search + " , I think you may like this picture. It's called: " + title
+                text = 'Since you enjoy ' + search + ' , I think you may like this picture. It\'s called: ' + title
             else:
-                text = "Here's a picture related to " + search + ". It's called: " + title
+                text = 'Here\'s a picture related to ' + search + '. It\'s called: ' + title
             photoList.append([url, text])
         return photoList[:30]
 
@@ -274,14 +274,14 @@ class api_methods:
         for result in results:
             movie_title = result.get('title')
             if query_topic == 'genre':
-                movie_text = "Here's a cool " + query + " movie that you might enjoy. It's called: " + movie_title
+                movie_text = 'Here\'s a cool ' + query + ' movie that you might enjoy. It\'s called: ' + movie_title
             elif query_topic == 'actor':
-                movie_text = "This is a cool movie starring " + query + ". It's called: " + movie_title
+                movie_text = 'This is a cool movie starring ' + query + '. It\'s called: ' + movie_title
             elif query_topic == 'director':
                 if randomized == False:
-                    movie_text = "You should see " + movie_title + ". It's from your favorite director, " + query
+                    movie_text = 'You should see ' + movie_title + '. It\'s from your favorite director, ' + query
                 else:
-                    movie_text = "I think you should go and see " + movie_title + " some time. It was directed by one of my personal favorite directors: " + query
+                    movie_text = 'I think you should go and see ' + movie_title + ' some time. It was directed by one of my personal favorite directors: ' + query
             movie_backdrop = result.get('backdrop_path')
             if movie_backdrop == None:
                 continue
@@ -335,9 +335,9 @@ class api_methods:
             for recommendation in recommendations:
                 title = recommendation.get('title')
                 if randomized == False:
-                    text = "You told me that you liked the movie: " + movie_query + ". You may also enjoy this one. It's called: " + title
+                    text = 'You told me that you liked the movie: ' + movie_query + '. You may also enjoy this one. It\'s called: ' + title
                 else:
-                    text = "This is a movie I watched some time ago. It's called: " + title
+                    text = 'This is a movie I watched some time ago. It\'s called: ' + title
                 movie_backdrop = recommendation.get('backdrop_path')
                 if movie_backdrop == None:
                     continue
@@ -381,8 +381,8 @@ class api_methods:
         return {'movie_recommendations': movie_recommendations, 'actor_popular': actor_credit_list,
                 'director_popular': director_credit_list,
                 'genre_recommendations': movie_genre_list}
-               
-               
+
+
     def runForever(self):
         try:
             while True:
@@ -394,7 +394,8 @@ class api_methods:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--server', type=str, default='localhost', help='Server IP address. Default is localhost.')
+    parser.add_argument('--no-ssl', action='store_true', default=False, help='Use this flag to disable the use of SSL.')
     args = parser.parse_args()
 
-    api_methods = api_methods(server=args.server)
+    api_methods = api_methods(args.server, not args.no_ssl)
     api_methods.runForever()

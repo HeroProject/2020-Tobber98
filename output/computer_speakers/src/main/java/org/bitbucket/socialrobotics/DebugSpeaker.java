@@ -4,6 +4,7 @@ package org.bitbucket.socialrobotics;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.io.File;
+import java.util.prefs.Preferences;
 
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -15,6 +16,7 @@ import com.harium.hci.espeak.Voice;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.Protocol;
 
 public class DebugSpeaker extends JFrame {
 	private static final long serialVersionUID = 1L;
@@ -22,6 +24,7 @@ public class DebugSpeaker extends JFrame {
 			"action_play_audio", "action_gesture", "action_eyecolour", "action_idle", "action_turn",
 			"action_turn_small" };
 	private final String server;
+	private final boolean ssl;
 	private final String espeak;
 	private final String webserver;
 	private final Voice voice;
@@ -30,20 +33,35 @@ public class DebugSpeaker extends JFrame {
 	private final JLabel language;
 
 	public static void main(final String... args) {
-		final String server = (args.length > 0) ? args[0] : JOptionPane.showInputDialog("Server IP");
-		final String espeak = (args.length > 1) ? args[1] : "C:\\Program Files (x86)\\eSpeak\\command_line";
+		final Preferences prefs = Preferences.userRoot().node("cbsr");
+		final String server = (args.length > 0) ? args[0]
+				: JOptionPane.showInputDialog("Server IP", prefs.get("server", ""));
+		prefs.put("server", server);
+		final String os = System.getProperty("os.name").toLowerCase();
+		final String espeak = os.startsWith("win") ? "C:\\Program Files (x86)\\eSpeak\\command_line" : "/usr/local/bin";
+		final String espeakpath = (args.length > 1) ? args[1] : espeak;
 		final String webserver = (args.length > 2) ? args[2] : "../../processing/webserver";
-		final DebugSpeaker speaker = new DebugSpeaker(server, espeak, webserver);
-		speaker.run();
+
+		System.setProperty("javax.net.ssl.trustStore", "../truststore.jks");
+		System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+
+		try {
+			final DebugSpeaker speaker = new DebugSpeaker(server, espeakpath, webserver);
+			speaker.run();
+		} catch (final Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 	}
 
 	public DebugSpeaker(final String server, final String espeak, final String webserver) {
 		super("CBSR Speaker");
 		this.server = server;
+		this.ssl = !this.server.equals("192.168.99.100");
 		this.espeak = espeak;
 		this.webserver = webserver;
 		this.voice = new Voice();
-		this.publisher = new Jedis(server);
+		this.publisher = new Jedis(server, Protocol.DEFAULT_PORT, this.ssl);
 
 		setLayout(new BorderLayout(10, 5));
 		this.status = new JLabel();
@@ -68,7 +86,8 @@ public class DebugSpeaker extends JFrame {
 	}
 
 	public void run() {
-		try (final Jedis redis = new Jedis(this.server)) {
+		try (final Jedis redis = new Jedis(this.server, Protocol.DEFAULT_PORT, this.ssl)) {
+			redis.ping();
 			System.out.println("Subscribing to " + this.server);
 			redis.subscribe(new JedisPubSub() {
 				@Override

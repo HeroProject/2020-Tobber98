@@ -10,8 +10,8 @@ class RedisConsumerRunner extends RedisRunner {
 			"detected_person", "recognised_face", "webrequest_response", "audio_language", "text_speech",
 			"audio_intent", "audio_newfile", "picture_newfile", "detected_emotion" };
 
-	public RedisConsumerRunner(final CBSRenvironment parent, final String server) {
-		super(parent, server);
+	public RedisConsumerRunner(final CBSRenvironment parent, final String server, final boolean ssl) {
+		super(parent, server, ssl);
 	}
 
 	@Override

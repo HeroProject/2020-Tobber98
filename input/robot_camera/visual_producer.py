@@ -19,7 +19,7 @@ class VideoProcessingModule(object):
         self.video_service = session.service('ALVideoDevice')
         self.module_name = 'VideoProcessingModule'
 
-        self.redis = redis.Redis(host=server)
+        self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe('action_video')
 
@@ -33,7 +33,7 @@ class VideoProcessingModule(object):
         if msg is not None:
             self.execute(msg)
         else:
-            time.sleep(0)
+            time.sleep(0.001)
 
     def execute(self, message):
         data = message['data'] # only subscribed to 1 topic

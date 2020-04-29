@@ -10,9 +10,9 @@ from imutils.video import FPS
 import pickle as pkl
 import redis
 
-FACE_ENCODING_PATH = './face_encodings.p'
-def main(debug, server):
-    client = redis.Redis(host=server)
+FACE_ENCODING_PATH = 'face_encodings.p'
+def main(debug, server, ssl):
+    client = redis.Redis(host=server, ssl=ssl, ssl_ca_certs='../cert.pem')
     pubsub = client.pubsub(ignore_subscribe_messages=True)
     pubsub.subscribe('action_take_picture')
 
@@ -34,7 +34,7 @@ def main(debug, server):
         # their adjusted gamma values such that any image has the same luminiscence
         invGamma = 1.0 / gamma
         table = np.array([((i / 255.0) ** invGamma) * 255
-            for i in np.arange(0, 256)]).astype("uint8")
+            for i in np.arange(0, 256)]).astype('uint8')
 
         # apply gamma correction using the lookup table
         return cv2.LUT(image, table, image)
@@ -42,14 +42,14 @@ def main(debug, server):
     if os.path.isfile(FACE_ENCODING_PATH):
         face_encodings_list = pkl.load(open(FACE_ENCODING_PATH,'rb'))
         if debug:
-            print('loading encodings', "Length encoding ", len(face_encodings_list))
+            print('loading encodings', 'Length encoding ', len(face_encodings_list))
     fps = FPS().start()
 
     # Wait for a message on the image_size topic
     while im_size_string is None:
         msg = client.get('image_size')
         if msg is None:
-            time.sleep(0)
+            time.sleep(0.001)
         else:
             im_size_string = msg
             im_width = int(im_size_string[0:4])
@@ -58,7 +58,7 @@ def main(debug, server):
     while True:
         if debug:
             t0 = time.time()
-        
+
         newframe = client.get('image_frame')
         if newframe is None:
             newframe = -1
@@ -66,7 +66,7 @@ def main(debug, server):
             newframe = int(newframe)
         if newframe != 0 and newframe <= frame:
             #print 'no image'
-            time.sleep(0)
+            time.sleep(0.001)
             continue
         frame = newframe
 
@@ -81,7 +81,7 @@ def main(debug, server):
         im = Image.frombytes('RGB', (im_width, im_height), naoImage)
         cv_image = cv2.cvtColor(np.asarray(im, dtype=np.uint8), cv2.COLOR_BGRA2RGB)
         image = cv_image[:, :, ::-1]
-        
+
         # For taking pictures...
         msg = pubsub.get_message()
         if msg is not None:
@@ -118,17 +118,17 @@ def main(debug, server):
                 tmp = str(index)
                 if debug:
                     print('Not consistent match with compare faces and euclidean distance \n')
-                    print("NAME ", name, "ArgMin ", np.argmin(dist), "Count", count)
+                    print('NAME ', name, 'ArgMin ', np.argmin(dist), 'Count ', count)
 
                 if index == np.argmin(dist):
                     name = tmp
                     face_name.append(name)
                     if debug:
-                        print('Person already recognised and consistent ma')
-                        print("NAME ", name, "ArgMin ", np.argmin(dist))
+                        print('Person already recognised and consistent \n')
+                        print('NAME ', name, 'ArgMin ', np.argmin(dist))
                 else:
                     if debug:
-                        print("Mis Match in face recognition")
+                        print('Mismatch in face recognition')
                     continue
 
             client.publish('recognised_face', name)
@@ -158,7 +158,8 @@ def main(debug, server):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--server', type=str, default='localhost', help='Server IP address. Default is localhost.')
-    parser.add_argument('--debug', type=str, default=False, help='Create rectangle image on recognised faces with proper id.')
+    parser.add_argument('--no-ssl', action='store_true', default=False, help='Use this flag to disable the use of SSL.')
+    parser.add_argument('--debug', action='store_true', default=False, help='Use this flag to enable several debug statements and drawings.')
     args = parser.parse_args()
 
-    main(args.debug, args.server)
+    main(args.debug, args.server, not args.no_ssl)

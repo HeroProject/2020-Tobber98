@@ -1,8 +1,7 @@
 class pyenv(
   $ensure_repo           = 'present',
   $repo_location         = '/usr/local/pyenv',
-  $repo_revision         = 'v0.4.0-20140404',
-  $symlink_pyenv         = true,
+  $symlink_pyenv         = false,
   $symlink_path          = '/usr/local/bin',
   $manage_packages       = true,
   $ensure_packages       = 'latest',
@@ -11,7 +10,6 @@ class pyenv(
 
   validate_legacy(Stdlib::Absolutepath, 'validate_absolute_path', $repo_location)
   validate_legacy('Optional[String]', 'validate_re', $ensure_repo, ['present', 'absent'])
-  validate_legacy(String, 'validate_string', $repo_revision)
   validate_legacy(Boolean, 'validate_bool', $symlink_pyenv)
   validate_legacy(Stdlib::Absolutepath, 'validate_absolute_path', $symlink_path)
   validate_legacy(Boolean, 'validate_bool', $manage_packages)
@@ -22,11 +20,10 @@ class pyenv(
     owner    => 0,
     group    => 0,
     provider => 'git',
-    source   => 'https://github.com/yyuu/pyenv.git',
-    revision => $repo_revision,
+    source   => 'https://github.com/yyuu/pyenv.git'
   }
 
-  if $symlink_path {
+  if $symlink_pyenv {
     file { "${symlink_path}/pyenv":
       target => "${repo_location}/bin/pyenv",
     }

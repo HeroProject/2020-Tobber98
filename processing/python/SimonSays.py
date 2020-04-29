@@ -5,19 +5,24 @@ import time
 
 class SimonSays(Base.AbstractApplication):
     def __init__(self):
-        super(SimonSays, self).__init__(serverIP='192.168.0.13')
-        # super(SimonSays, self).__init__(serverIP='127.0.0.1')
+        super(SimonSays, self).__init__(serverIP='192.168.0.12')
+
+        self.host = True
         self.score = 0
         self.speedup = 0
+
         self.ingame_buttons = ["bl", "br", "tl", "tr"] # Could potentially do head as well
         self.physical_buttons = ["RightBumperPressed", "LeftBumperPressed", "HandRightBackTouched", 
         "HandRightLeftTouched", "HandRightRightTouched", "HandLeftLeftTouched", 
         "HandLeftRightTouched", "HandLeftBackTouched"]
-        # self.buttons2 = ["RightBumperPressed", "LeftBumperPressed"8, "FrontTactilTouched",
-        # "MiddleTactilTouched", "RearTactilTouched", "HandRightBackTouched", "HandRightLeftTouched", 
-        # "HandRightRightTouched", "HandLeftLeftTouched", "HandLeftRightTouched", "HandLeftBackTouched"]
+
         self.current_button = None
         self.button_pressed = None
+
+        self.move_to_make = None
+
+        self.setDialogflowKey('ronald-ywcxbh-a2ca41d812bb.json')
+        self.setDialogflowAgent('ronald-ywcxbh')
 
     # Generate rondom float between min and max values given
     def generate_random(self, min, max):
@@ -64,6 +69,27 @@ class SimonSays(Base.AbstractApplication):
         print("test 2")
         return False
 
+    def guess(self):
+        self.setAudioContext('make_move')
+        self.turnLock = Semaphore(0)
+        self.startListening()
+        self.turnLock.acquire(timeout=3)
+        self.stopListening()
+
+        if self.move_to_make == "linkervoet":
+            print("Linkervoet bewegen")
+        elif self.move_to_make == "rechtervoet":
+            print("Rechtervoet bewegen")
+        elif self.move_to_make == "linkerhand":
+            print("Linkerhand bewegen")
+        elif self.move_to_make == "rechterhand":
+            print("Rechterhand bewegen")
+        else:
+            print("Sorry, ik weet het niet")
+
+        # Listen if correct?
+        return False
+
     # Start of the game
     def start(self):
         #Set language to Dutch
@@ -71,19 +97,31 @@ class SimonSays(Base.AbstractApplication):
         self.setLanguage('nl-NL')
         self.langLock.acquire()
 
+        # Put robot in right position for host
+        self.movementLock = Semaphore(0)
+        self.doGesture("simonsayshost-a4203c/behavior_1")
+        self.movementLock.acquire()
+
         # Start of game message
         self.speechLock = Semaphore(0)
-        self.say("Laten we beginnen. Sla alles wat oplicht.")
+        self.say("Laten we beginnen. Druk op alles wat ik zeg!")
         self.speechLock.acquire()
 
         # Call button and wait for response
         self.buttonLock = Semaphore(0)
         while(True):
-            # hit = self.create_mole()
-            if self.create_mole():
-                self.score += 1
+            if self.host:
+                if self.create_mole():
+                    self.score += 1
+                else:
+                    self.score = 0
+                    break
             else:
-                break
+                if self.guess():
+                    self.score += 1
+                else:
+                    self.score = 0
+                    break
 
         self.say("Ah jammer, je was niet snel genoeg. Je score was {:d}!".format(self.score))
         self.speechLock.acquire()
@@ -99,7 +137,13 @@ class SimonSays(Base.AbstractApplication):
             print(event)
             self.button_pressed = event
             self.buttonLock.release()
+        if event == "GestureDone":
+            self.movementLock.release()
 
+    def onAudioIntent(self, *args, intentName):
+        if intentName == 'make_move' and len(args) > 0:
+            self.move_to_make = args[0]
+            self.turnLock.release()
 
 if __name__ == "__main__":
     wam = SimonSays()

@@ -34,8 +34,7 @@ EOL
     if [[ "${OS}" == 'centos' ]]; then
         rpm --import https://yum.puppetlabs.com/RPM-GPG-KEY-puppet
         rpm -Uvh "https://yum.puppetlabs.com/puppet5/puppet5-release-el-${RELEASE}.noarch.rpm"
-        yum -y install yum-plugin-versionlock puppet-agent-5.3*
-        yum versionlock add puppet-agent
+        yum -y install puppet-agent-5.5*
     fi
 
     rm -f /usr/bin/puppet

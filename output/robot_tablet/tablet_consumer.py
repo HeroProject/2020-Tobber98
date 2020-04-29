@@ -12,10 +12,8 @@ from tablet import Tablet
 
 class TabletConsumer(object):
     """Receives commands from Redis and executes them on the tablet"""
-    def __init__(self, server, redis_port, server_port):
-        print 'Redis: {}:{}'.format(server, redis_port)
-        print 'Web: {}:{}'.format(server, server_port)
-        self.tablet = Tablet(server, server_port)
+    def __init__(self, server):
+        self.tablet = Tablet(server)
 
         # Catch SIGINT/SIGTERM for cleanup purposes to stop threads
         signal.signal(signal.SIGINT, self._exit_gracefully)
@@ -29,15 +27,14 @@ class TabletConsumer(object):
             'tablet_video',
             'tablet_web',
         ]
-        print channels
 
         # Create the consumer on those channels
-        self.redis = redis.Redis(host=server, port=redis_port)
+        self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe(*channels)
 
         # Set the base URI for web pages
-        self.webcontent_uri = 'http://' + server + ':' + str(server_port) + '/index.html'
+        self.webcontent_uri = 'https://' + server + ':8000/index.html'
 
     # Handler should technically also have signum and frame as parameters, but we don't use that
     def _exit_gracefully(self, *_):
@@ -51,7 +48,7 @@ class TabletConsumer(object):
         if msg is not None:
             self.execute(msg['channel'], msg['data'])
         else:
-            time.sleep(0)
+            time.sleep(0.001)
 
     def tablet_control(self, command):
         """Misc commands to control the tablet"""
@@ -66,7 +63,7 @@ class TabletConsumer(object):
         elif command.startswith('volume'):
             # Convert the percentage to a float between 0 and 1
             # The command sent to the channel is e.g. "volume 50"
-            value = float(command.split(' ')[1]) / 100
+            value = float(command.split(' ')[1])/100
             print 'setting volume to {}'.format(value)
             try:
                 self.tablet.set_volume(value)
@@ -113,11 +110,9 @@ if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--server', type=str, required=True, help='Server IP address.')
-    PARSER.add_argument('--redis-port', dest='redis_port', nargs='?', default=6379)
-    PARSER.add_argument('--server-port', dest='server_port', nargs='?', default=8000)
     ARGS = PARSER.parse_args()
 
     print 'Receiving commands...'
 
-    CONSUMER = TabletConsumer(ARGS.server, ARGS.redis_port, ARGS.server_port)
+    CONSUMER = TabletConsumer(ARGS.server)
     CONSUMER.run_forever()

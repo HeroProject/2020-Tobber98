@@ -63,15 +63,12 @@ EOL
 
         EPEL='http://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm'
     else
-        EPEL='http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm'
+        EPEL='http://dl.fedoraproject.org/pub/epel/epel-release-latest-${RELEASE}.noarch.rpm'
     fi
 
     yum -y --nogpgcheck install "${EPEL}"
-    yum -y install centos-release-scl
     yum clean all
     yum -y check-update
-
-    yum -y install curl git
     yum -y groupinstall 'Development Tools'
 fi
 

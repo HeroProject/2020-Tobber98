@@ -15,9 +15,9 @@ public class WebSocketServer extends NanoWSD {
 	private final List<WebSocket> connections;
 	private final Jedis redis;
 
-	public WebSocketServer(final int port, final String redisServer) {
+	public WebSocketServer(final int port, final Jedis redis) throws Exception {
 		super(port);
-		this.redis = new Jedis(redisServer);
+		this.redis = redis;
 		this.connections = Collections.synchronizedList(new ArrayList<>());
 	}
 
@@ -64,7 +64,8 @@ public class WebSocketServer extends NanoWSD {
 				WebSocketServer.this.redis.publish("tablet_connection", "1");
 			} else {
 				System.out.println("got: " + answer);
-				WebSocketServer.this.redis.publish("tablet_answer", answer);
+				final String[] split = answer.split("\\|");
+				WebSocketServer.this.redis.publish(split[0], split[1]);
 			}
 		}
 

@@ -1,6 +1,6 @@
 var socket = null;
 $(function() {
-	socket = new WebSocket('ws://127.0.0.1:8001');
+	socket = new WebSocket('wss://127.0.0.1:8001');
 	socket.onopen = function() {
     	$(document.body).html('*');
     	socket.send('*');
@@ -11,6 +11,7 @@ $(function() {
 			$(document.body).html(data.message);
 			updateListeningIcon('');
 			vuLogo();
+			englishFlag();
 			activateButtons();
 		} else if( data.channel == 'action_audio' ) {
 			updateListeningIcon(data.message);
@@ -45,12 +46,19 @@ function updateSpeechText(input) {
 }
 function vuLogo() {
 	var vuLogo = $('.vu_logo');
-	vuLogo.html('<img src="img/vu_logo.jpg" '+iconStyle+'>')
+	vuLogo.html('<img src="img/vu_logo.jpg" '+iconStyle+'>');
+}
+function englishFlag() {
+	var englishFlag = $('.english_flag');
+	englishFlag.html('<img src="img/english_flag.png" '+iconStyle+'>');
+	englishFlag.click(function() {
+		socket.send('audio_language|en-US');
+	});
 }
 function activateButtons() {
 	var buttons = $(':button');
 	buttons.click(function() {
 		var buttonValue = $(this).html();
-		socket.send(buttonValue);
+		socket.send('tablet_answer|'+buttonValue);
 	});
 }

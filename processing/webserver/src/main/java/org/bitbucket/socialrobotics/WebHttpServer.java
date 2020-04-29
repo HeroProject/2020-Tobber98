@@ -3,7 +3,6 @@ package org.bitbucket.socialrobotics;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -16,7 +15,7 @@ public class WebHttpServer extends NanoHTTPD {
 	private final static String indexFile = "index.html";
 	private final File homeDir;
 
-	public WebHttpServer(final int port) throws IOException {
+	public WebHttpServer(final int port) throws Exception {
 		super(port);
 		this.homeDir = new File("html");
 	}

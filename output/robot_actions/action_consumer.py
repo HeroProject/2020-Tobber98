@@ -14,7 +14,7 @@ GREEN = 0x00ff00
 class RobotConsumer():
     def __init__(self, server, topics):
         self.server = server
-        self.redis = redis.Redis(host=server)
+        self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe(*topics)
 
@@ -37,7 +37,7 @@ class RobotConsumer():
             t = Thread(target = self.execute, args = (msg, ))
             t.start()
         else:
-            time.sleep(0)
+            time.sleep(0.001)
 
     def produce(self, value):
         self.redis.publish('events_robot', value)

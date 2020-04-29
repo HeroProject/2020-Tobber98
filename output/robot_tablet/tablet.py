@@ -17,7 +17,7 @@ class Tablet(object):
     PAN_CENTER = 0.0
     FULL_VOLUME = 1.0
 
-    def __init__(self, server_ip, server_port, ip='127.0.0.1', port=9559):
+    def __init__(self, server_ip, server_port=8000, ip='127.0.0.1', port=9559):
         self.robot_ip = ip
         self.port = port
         self.server_ip = server_ip
@@ -69,8 +69,8 @@ class Tablet(object):
 
     def url_for(self, resource, res_type):
         """Create a URL for a static resource"""
-        if not resource.startswith('http'):
-            resource = 'http://{}:{}/{}/{}'.format(self.server_ip, self.server_port, res_type, resource)
+        if not resource.startswith('https'):
+            resource = 'https://{}:{}/{}/{}'.format(self.server_ip, self.server_port, res_type, resource)
         return resource
 
     def set_volume(self, value):

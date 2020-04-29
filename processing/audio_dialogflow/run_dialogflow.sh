@@ -19,7 +19,7 @@ cleanup() {
 
 trap cleanup INT TERM
 
-java -jar audio-dialogflow.jar localhost &
+java -XX:+UseG1GC -jar audio-dialogflow.jar localhost &
 dialogflow_pid=$!
 echo "DialogFlow running (pid $dialogflow_pid)"
 echo "Press Ctrl-C to stop."

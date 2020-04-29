@@ -1,4 +1,10 @@
 class cbsr::config inherits cbsr {
+  file { '/etc/ssl/certs/private.pem':
+    ensure    =>  file,
+    source    =>  'puppet:///modules/cbsr/private.pem',
+    mode      =>  '0644'
+  }
+  
   file { '/etc/redis.conf':
     notify    =>  Service['redis'],
     ensure    =>  file,
@@ -6,11 +12,24 @@ class cbsr::config inherits cbsr {
     owner     =>  'redis',
     mode      =>  '0600'
   }
+  file { '/home/vagrant/redis-cli.sh':
+    ensure    =>  file,
+    source    =>  'puppet:///modules/cbsr/redis-cli.sh',
+    mode      =>  '0700',
+    require   =>  File['/etc/redis.conf']
+  }
+  file { '/root/redis-cli.sh':
+    ensure    =>  file,
+    source    =>  'puppet:///modules/cbsr/redis-cli.sh',
+    mode      =>  '0700',
+    require   =>  File['/etc/redis.conf']
+  }
   
   file { '/etc/httpd':
     ensure    =>  directory,
     owner     =>  'apache',
     mode      =>  '0550',
+    require   =>  File['/etc/ssl/certs/private.pem']
   }
   file { '/etc/httpd/conf/httpd.conf':
     notify    =>  Service['httpd'],
@@ -43,10 +62,16 @@ class cbsr::config inherits cbsr {
     ensure    =>  absent,
     require   =>  File['/etc/httpd/conf.d/php-fpm.conf']
   }
+  file { '/etc/httpd/conf.d/ssl.conf':
+    notify    =>  Service['httpd'],
+    ensure    =>  file,
+    source    =>  'puppet:///modules/cbsr/conf/ssl.conf',
+    require   =>  File['/etc/httpd/conf.d/welcome.conf']
+  }
   file { '/etc/httpd/conf.modules.d/01-cgi.conf':
     notify    =>  Service['httpd'],
     ensure    =>  absent,
-    require   =>  File['/etc/httpd/conf.d/welcome.conf']
+    require   =>  File['/etc/httpd/conf.d/ssl.conf']
   }
   file { '/etc/httpd/conf.modules.d/00-dav.conf':
     notify    =>  Service['httpd'],
@@ -141,11 +166,17 @@ class cbsr::config inherits cbsr {
     content   =>  'extension=igbinary.so',
     require   =>  File['/etc/php.d/20-posix.ini'],
   }
+  file { '/etc/php.d/40-msgpack.ini':
+    notify    =>  Service['httpd'],
+    ensure    =>  present,
+    content   =>  'extension=msgpack.so',
+    require   =>  File['/etc/php.d/40-igbinary.ini'],
+  }
   file { '/etc/php.d/20-json.ini':
     notify    =>  Service['httpd'],
     ensure    =>  present,
     content   =>  'extension=json.so',
-    require   =>  File['/etc/php.d/40-igbinary.ini'],
+    require   =>  File['/etc/php.d/40-msgpack.ini'],
   }
   file { '/etc/php.d/20-exif.ini':
     notify    =>  Service['httpd'],
@@ -281,7 +312,8 @@ class cbsr::config inherits cbsr {
   }
   file { '/etc/php.d/40-zip.ini':
     notify    =>  Service['httpd'],
-    ensure    =>  absent,
+    ensure    =>  present,
+    content   =>  'extension=zip.so',
     require   =>  File['/etc/php.d/30-wddx.ini'],
   }
   file { '/etc/php-fpm.conf':
@@ -306,7 +338,7 @@ class cbsr::config inherits cbsr {
     environment => ['COMPOSER_HOME=/var/composer'],
     path        =>  $path,
     cwd         =>  '/var/www/html',
-    command     =>  'composer install --no-dev --no-suggest --no-progress --prefer-dist --optimize-autoloader',
+    command     =>  'composer install --no-plugins --no-dev --no-suggest --no-progress --prefer-dist --optimize-autoloader',
     timeout     =>  0,
     require     =>  File['/etc/php.ini']
   }
@@ -314,5 +346,8 @@ class cbsr::config inherits cbsr {
   exec { 'systemctl':
     path      =>  $path,
     command   =>  'systemctl daemon-reload'
+  }
+  file { '/etc/motd.d/cockpit':
+    ensure    =>  absent
   }
 }

@@ -3,12 +3,17 @@ package org.bitbucket.socialrobotics;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.DataOutputStream;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -17,7 +22,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.prefs.Preferences;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.swing.JOptionPane;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -43,6 +52,7 @@ import com.google.protobuf.Value;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.Protocol;
 
 public class IntentDetection {
 	private static final String[] topics = new String[] { "audio_language", "audio_context", "dialogflow_key",
@@ -52,6 +62,7 @@ public class IntentDetection {
 	private static final AudioEncoding audioEncoding = AudioEncoding.AUDIO_ENCODING_LINEAR_16;
 	private static final int sampleRateHertz = 16000;
 	private final String server;
+	private final boolean ssl;
 	private final Jedis publisher;
 	private SessionsClient client;
 	private SessionName session;
@@ -60,17 +71,28 @@ public class IntentDetection {
 	private volatile boolean shouldRecord;
 
 	public static void main(final String... args) {
-		final String server = (args.length > 0) ? args[0] : JOptionPane.showInputDialog("Server IP");
-		final IntentDetection dialogflow = new IntentDetection(server);
-		dialogflow.run();
+		final Preferences prefs = Preferences.userRoot().node("cbsr");
+		final String server = (args.length > 0) ? args[0]
+				: JOptionPane.showInputDialog("Server IP", prefs.get("server", ""));
+		prefs.put("server", server);
+		final boolean ssl = (args.length <= 1); // any text as second arg disables ssl
+
+		try {
+			final IntentDetection dialogflow = new IntentDetection(server, ssl);
+			dialogflow.run();
+		} catch (final Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 	}
 
-	public IntentDetection(final String server) {
+	public IntentDetection(final String server, final boolean ssl) throws Exception {
 		this.server = server;
-		this.publisher = new Jedis(server);
+		this.ssl = ssl;
+		this.publisher = connect();
 	}
 
-	public void setKey(final String key) throws IOException {
+	public void setKey(final String key) throws Exception {
 		final InputStream stream = new ByteArrayInputStream(key.getBytes(StandardCharsets.UTF_8));
 		final ServiceAccountJwtAccessCredentials credentials = ServiceAccountJwtAccessCredentials.fromStream(stream);
 		final SessionsSettings settings = SessionsSettings.newBuilder()
@@ -90,8 +112,8 @@ public class IntentDetection {
 		this.context = context;
 	}
 
-	public void run() {
-		try (final Jedis redis = new Jedis(this.server)) {
+	public void run() throws Exception {
+		try (final Jedis redis = connect()) {
 			System.out.println("Subscribing to " + this.server);
 			redis.subscribe(new JedisPubSub() {
 				private RedisAudioIterator audio;
@@ -108,8 +130,8 @@ public class IntentDetection {
 					case "dialogflow_key":
 						try {
 							setKey(message);
-						} catch (final IOException e) {
-							e.printStackTrace(); // FIXME
+						} catch (final Exception e) {
+							e.printStackTrace();
 						}
 						break;
 					case "dialogflow_agent":
@@ -122,13 +144,17 @@ public class IntentDetection {
 						switch (message) {
 						case "start listening":
 							if (this.audio == null) {
-								this.audio = new RedisAudioIterator();
-								new Thread() {
-									@Override
-									public void run() {
-										detectIntents(audio);
-									}
-								}.start();
+								try {
+									this.audio = new RedisAudioIterator();
+									new Thread() {
+										@Override
+										public void run() {
+											detectIntents(audio);
+										}
+									}.start();
+								} catch (final Exception e) {
+									e.printStackTrace();
+								}
 							} else {
 								System.err.println("already listening...");
 							}
@@ -159,10 +185,8 @@ public class IntentDetection {
 	 */
 	public void detectIntents(final Iterator<byte[]> audio) {
 		System.out.println("START INTENT DETECTION");
+
 		// Instructs the speech recognizer how to process the audio content
-		final InputAudioConfig.Builder inputAudioConfig = InputAudioConfig.newBuilder().setAudioEncoding(audioEncoding)
-				.setLanguageCode(IntentDetection.this.language).setSampleRateHertz(sampleRateHertz)
-				.setSingleUtterance(true);
 		final ResponseObserver<StreamingDetectIntentResponse> responseObserver = new ResponseObserver<StreamingDetectIntentResponse>() {
 			@Override
 			public void onStart(final StreamController controller) {
@@ -244,25 +268,40 @@ public class IntentDetection {
 			}
 		};
 
+		// Basic checks
+		try {
+			if (this.client == null) {
+				throw new Exception("No keyfile set");
+			} else if (this.session == null) {
+				throw new Exception("No agent set");
+			} else if (this.language == null) {
+				throw new Exception("No language set");
+			}
+		} catch (final Exception e) {
+			System.err.println(e.getMessage() + ", aborting...");
+			responseObserver.onComplete();
+			return;
+		}
+
 		// Performs the streaming detect intent callable request
-		final ClientStream<StreamingDetectIntentRequest> requestObserver = IntentDetection.this.client
-				.streamingDetectIntentCallable().splitCall(responseObserver);
+		final ClientStream<StreamingDetectIntentRequest> requestObserver = this.client.streamingDetectIntentCallable()
+				.splitCall(responseObserver);
 		// Set the context (if any)
 		final QueryParameters.Builder queryParams = QueryParameters.newBuilder();
-		if (IntentDetection.this.context != null && !IntentDetection.this.context.isEmpty()) {
+		if (this.context != null && !this.context.isEmpty()) {
 			System.out.println("CONTEXT: " + this.context);
-			queryParams.addContexts(Context.newBuilder()
-					.setName(IntentDetection.this.session.toString() + "/contexts/" + IntentDetection.this.context)
+			queryParams.addContexts(Context.newBuilder().setName(this.session.toString() + "/contexts/" + this.context)
 					.setLifespanCount(1));
 		}
-		// Build the query with the InputAudioConfig
+		// Build the query with an InputAudioConfig
+		final InputAudioConfig.Builder inputAudioConfig = InputAudioConfig.newBuilder().setAudioEncoding(audioEncoding)
+				.setLanguageCode(this.language).setSampleRateHertz(sampleRateHertz).setSingleUtterance(true);
 		final QueryInput.Builder queryInput = QueryInput.newBuilder().setAudioConfig(inputAudioConfig);
 
 		try {
 			// The first request contains the configuration
 			final StreamingDetectIntentRequest request = StreamingDetectIntentRequest.newBuilder()
-					.setSession(IntentDetection.this.session.toString()).setQueryInput(queryInput)
-					.setQueryParams(queryParams).build();
+					.setSession(this.session.toString()).setQueryInput(queryInput).setQueryParams(queryParams).build();
 			requestObserver.send(request);
 			while (audio.hasNext()) {
 				final byte[] next = audio.next(); // this is a blocking call
@@ -285,9 +324,8 @@ public class IntentDetection {
 		private final List<Byte> allbytes;
 		private volatile boolean closed = false;
 
-		RedisAudioIterator() {
-			this.redis = new Jedis(IntentDetection.this.server);
-			this.redis.connect();
+		RedisAudioIterator() throws Exception {
+			this.redis = connect();
 			if (IntentDetection.this.shouldRecord) {
 				this.allbytes = new LinkedList<>();
 			} else {
@@ -411,6 +449,40 @@ public class IntentDetection {
 			res = VOLUME_NORM_LUT[res + MAX_NEGATIVE_AMPLITUDE];
 			audioSamples[i] = (byte) res;
 			audioSamples[i + 1] = (byte) (res >> 8);
+		}
+	}
+
+	private Jedis connect() throws Exception {
+		if (this.ssl) {
+			final KeyStore keyStore = KeyStore.getInstance("JKS");
+			keyStore.load(new FileInputStream("../truststore.jks"), "changeit".toCharArray());
+			final Certificate original = ((KeyStore.TrustedCertificateEntry) keyStore.getEntry("cbsr", null))
+					.getTrustedCertificate();
+			final TrustManager bypass = new X509TrustManager() {
+				@Override
+				public X509Certificate[] getAcceptedIssuers() {
+					return new X509Certificate[] { (X509Certificate) original };
+				}
+
+				@Override
+				public void checkClientTrusted(final X509Certificate[] chain, final String authType)
+						throws CertificateException {
+					checkServerTrusted(chain, authType);
+				}
+
+				@Override
+				public void checkServerTrusted(final X509Certificate[] chain, final String authType)
+						throws CertificateException {
+					if (chain.length != 1 || !chain[0].equals(original)) {
+						throw new CertificateException("Invalid certificate provided");
+					}
+				}
+			};
+			final SSLContext sslContext = SSLContext.getInstance("TLS");
+			sslContext.init(null, new TrustManager[] { bypass }, null);
+			return new Jedis(this.server, Protocol.DEFAULT_PORT, true, sslContext.getSocketFactory(), null, null);
+		} else {
+			return new Jedis(this.server);
 		}
 	}
 }

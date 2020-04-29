@@ -46,8 +46,12 @@ class ReactToEvent(object):
         self.hand_left_back_touched_id = self.hand_left_back_touched.signal.connect(functools.partial(self.handLeftBackTouched, 'HandLeftBackTouched'))
         #self.sound_detected_id = self.sound_detected.signal.connect(functools.partial(self.soundDetected, 'SoundDetected'))
 
+        # Bumper pressed/released logic
+        self.right_bumper_is_pressed = False
+        self.left_bumper_is_pressed = False
+
         # Initialise Redis
-        self.redis = redis.Redis(host=server)
+        self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
 
     def produce(self, value):
         self.redis.publish('events_robot', value)
@@ -56,8 +60,14 @@ class ReactToEvent(object):
         # Disconnect to the event to avoid repetitions
         self.right_bumper_pressed.signal.disconnect(self.right_bumper_pressed_id)
 
-        self.produce('RightBumperPressed')
-        print('RightBumperPressed detected')
+        if self.right_bumper_is_pressed:
+            self.produce('RightBumperReleased')
+            print('RightBumperReleased detected')
+            self.right_bumper_is_pressed = False
+        else:
+            self.produce('RightBumperPressed')
+            print('RightBumperPressed detected')
+            self.right_bumper_is_pressed = True
 
         # Reconnect again to the event
         self.right_bumper_pressed_id = self.right_bumper_pressed.signal.connect(functools.partial(self.rightBumperPressed, 'RightBumperPressed'))
@@ -66,8 +76,15 @@ class ReactToEvent(object):
         # Disconnect to the event to avoid repetitions
         self.left_bumper_pressed.signal.disconnect(self.left_bumper_pressed_id)
 
-        self.produce('LeftBumperPressed')
-        print('LeftBumperPressed detected')
+        if self.left_bumper_is_pressed:
+            self.produce('LeftBumperReleased')
+            print('LeftBumperReleased detected')
+            self.left_bumper_is_pressed = False
+        else:
+            self.produce('LeftBumperPressed')
+            print('LeftBumperPressed detected')
+            self.left_bumper_is_pressed = True
+
 
         # Reconnect again to the event
         self.left_bumper_pressed_id = self.left_bumper_pressed.signal.connect(functools.partial(self.leftBumperPressed, 'LeftBumperPressed'))

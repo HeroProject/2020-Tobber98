@@ -19,7 +19,7 @@ cleanup() {
 
 trap cleanup INT TERM
 
-java -jar webserver.jar localhost &
+java -XX:+UseG1GC -jar webserver.jar localhost &
 webserver_pid=$!
 echo "Webserver running (pid $webserver_pid)"
 echo "Press Ctrl-C to stop."

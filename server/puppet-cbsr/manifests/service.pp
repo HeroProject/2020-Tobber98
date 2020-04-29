@@ -3,11 +3,11 @@ class cbsr::service inherits cbsr {
     enable      =>  true,
     ensure      =>  running
   }
-  service { 'network':
+  service { 'NetworkManager':
     enable      =>  true,
     ensure      =>  running
   }
-  service { 'ntpd':
+  service { 'chronyd':
     enable      =>  true,
     ensure      =>  running
   }

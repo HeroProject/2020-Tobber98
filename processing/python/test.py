@@ -4,7 +4,7 @@ from threading import Semaphore
 
 class DialogFlowSampleApplication(Base.AbstractApplication):
     def __init__(self):
-        super(DialogFlowSampleApplication, self).__init__(serverIP='192.168.0.25')
+        super(DialogFlowSampleApplication, self).__init__(serverIP='192.168.0.18')
 
     def main(self):
         # Set the correct language (and wait for it to be changed)

@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package version="0.0.1" uuid="gefeliciteerd-d0d95b" installOnlyAtStartup="false">
+ <names>
+  <name lang="en_US">Gefeliciteerd</name>
+ </names>
+ <descriptionLanguages>
+  <language>en_US</language>
+  <language>nl_NL</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="behavior_1">
+   <userRequestable/>
+   <nature>interactive</nature>
+   <autonomous/>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>

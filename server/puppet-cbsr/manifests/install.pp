@@ -18,60 +18,68 @@ class cbsr::install inherits cbsr {
     command     =>  'sysctl -p > /dev/null',
     require     =>  File['/etc/sysctl.conf']
   }
+  file { '/etc/selinux/config':
+    ensure      =>  file,
+    content     =>  "SELINUX=disabled\n",
+    require     =>  Exec['sysctl']
+  }
   file { '/etc/systemd/system/disable-thp.service':
     notify      =>  Service['disable-thp'],
     ensure      =>  file,
     source      =>  'puppet:///modules/cbsr/services/disable-thp',
-    require     =>  Exec['sysctl']
+    require     =>  File['/etc/selinux/config']
   }
-  package { 'iptables-services':
+
+  package { 'dnf-utils':
     ensure      =>  present,
     require     =>  File['/etc/systemd/system/disable-thp.service']
   }
-  exec { 'iptables':
-    path        =>  $path,
-    command     =>  'systemctl disable firewalld && systemctl enable iptables',
-    require     =>  Package['iptables-services']
-  }
-
-  package { 'yum-plugin-fastestmirror':
+  package { 'redhat-rpm-config':
     ensure      =>  present,
-    require     =>  Exec['iptables']
-  }
-  package { 'yum-utils':
-    ensure      =>  present,
-    require     =>  Package['yum-plugin-fastestmirror']
+    require     =>  Package['dnf-utils']
   }
   package { 'epel-release':
     ensure      =>  present,
     provider    =>  rpm,
-    source      =>  'https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm',
-    require     =>  Package['yum-utils']
+    source      =>  'https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm',
+    require     =>  Package['redhat-rpm-config']
   }
-  package { 'ius-release':
+  package { 'remi-release':
     ensure      =>  present,
     provider    =>  rpm,
-    source      =>  'https://repo.ius.io/ius-release-el7.rpm',
+    source      =>  'https://rpms.remirepo.net/enterprise/remi-release-8.rpm',
     require     =>  Package['epel-release']
   }
-  exec { 'yum-update':
+  exec { 'dnf-enable':
     path        =>  $path,
-    command     =>  'yum -y update',
+    command     =>  'dnf config-manager --enable remi remi-test remi-modular-test',
     timeout     =>  0,
-    require     =>  Package['ius-release']
+    require     =>  Package['remi-release']
+  }
+  exec { 'dnf-modules':
+    path        =>  $path,
+    command     =>  'dnf -y module reset php redis && dnf -y module enable php:remi-7.4 redis:remi-6.0',
+    timeout     =>  0,
+    require     =>  Exec['dnf-enable']
+  }
+  exec { 'dnf-update':
+    path        =>  $path,
+    command     =>  'dnf -y update',
+    timeout     =>  0,
+    require     =>  Exec['dnf-modules']
   }
   
   package { 'at':
     ensure      =>  present,
-    require     =>  Exec['yum-update']
+    require     =>  Exec['dnf-update']
   }
-  package { 'ntp':
+  package { 'chrony':
     ensure      =>  present,
     require     =>  Package['at']
   }
   package { 'psmisc':
     ensure      =>  present,
-    require     =>  Package['ntp']
+    require     =>  Package['chrony']
   }
   package { 'wget':
     ensure      =>  present,
@@ -86,62 +94,52 @@ class cbsr::install inherits cbsr {
     require     =>  Package['cmake']
   }
   
-  package { 'python-devel':
-    ensure      =>  present,
+  package { 'redis':
+    provider    => 'dnfmodule',
+    ensure      =>  'remi-6.0',
     require     =>  Package['sshpass']
   }
   package { 'java-1.8.0-openjdk-devel':
     ensure      =>  present,
     require     =>  Package['sshpass']
   }
-  package { 'redis5':
-    ensure      =>  present,
-    require     =>  Package['sshpass']
-  }
   
-  package { 'httpd24u':
+  package { 'httpd':
     ensure      =>  present,
-    require     =>  Package['redis5']
+    require     =>  Package['redis']
   }
-  package { 'php73-cli':
+  package { 'mod_ssl':
     ensure      =>  present,
-    require     =>  Package['httpd24u']
+    require     =>  Package['httpd']
   }
-  package { 'php73-fpm-httpd':
-    ensure      =>  present,
-    require     =>  Package['php73-cli']
+  package { 'php':
+    provider    => 'dnfmodule',
+    ensure      =>  'remi-7.4',
+    require     =>  Package['httpd']
   }
-  package { 'php73-gd':
+  package { 'php-gd':
     ensure      =>  present,
-    require     =>  Package['php73-cli']
+    require     =>  Package['php']
   }
-  package { 'php73-json':
+  package { 'php-intl':
     ensure      =>  present,
-    require     =>  Package['php73-cli']
+    require     =>  Package['php']
   }
-  package { 'php73-xml':
+  package { 'php-bcmath':
     ensure      =>  present,
-    require     =>  Package['php73-cli']
+    require     =>  Package['php']
   }
-  package { 'php73-intl':
+  package { 'php-zip':
     ensure      =>  present,
-    require     =>  Package['php73-cli']
+    require     =>  Package['php']
   }
-  package { 'php73-mbstring':
+  package { 'php-opcache':
     ensure      =>  present,
-    require     =>  Package['php73-cli']
+    require     =>  Package['php']
   }
-  package { 'php73-bcmath':
+  package { 'php-pecl-redis5':
     ensure      =>  present,
-    require     =>  Package['php73-cli']
-  }
-  package { 'php73-opcache':
-    ensure      =>  present,
-    require     =>  Package['php73-cli']
-  }
-  package { 'php73-pecl-redis':
-    ensure      =>  present,
-    require     =>  Package['php73-cli']
+    require     =>  Package['php']
   }
   exec { 'get-composer':
     environment => ['COMPOSER_HOME=/var/composer'],
@@ -150,7 +148,7 @@ class cbsr::install inherits cbsr {
     command     =>  'curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/bin/composer && chmod 0755 /usr/bin/composer',
     timeout     =>  0,
     onlyif      =>  'test ! -f /usr/bin/composer',
-    require     =>  Package['php73-cli']
+    require     =>  Package['php']
   }
   exec { 'composer-selfupdate':
     environment => ['COMPOSER_HOME=/var/composer'],
@@ -160,12 +158,23 @@ class cbsr::install inherits cbsr {
     require     =>  Exec['get-composer']
   }
   
+  package { 'python2-devel':
+    ensure      =>  present,
+    require     =>  Package['sshpass']
+  }
+  exec { 'update-pip':
+    path        =>  $path,
+    command     =>  'pip2 install --upgrade pip',
+    timeout     =>  0,
+    require     =>  Package['python2-devel']
+  }
   exec { 'pip-install':
     path        =>  $path,
-    command     =>  'pip install --ignore-installed redis hiredis google-cloud-speech opencv-python-headless numpy imutils Pillow face_recognition keras tensorflow statistics pandas --upgrade',
+    command     =>  'pip2 install --upgrade redis hiredis google-cloud-speech opencv-python-headless numpy imutils Pillow face_recognition keras tensorflow statistics pandas',
     timeout     =>  0,
-    require     =>  Package['python-devel']
+    require     =>  Package['python2-devel']
   }
+  
   file { '/etc/systemd/system/audio_dialogflow.service':
     notify      =>  Service['audio_dialogflow'],
     ensure      =>  file,

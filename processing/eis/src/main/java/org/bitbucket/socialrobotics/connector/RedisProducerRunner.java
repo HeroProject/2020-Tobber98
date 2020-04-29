@@ -13,8 +13,8 @@ import redis.clients.jedis.Jedis;
 class RedisProducerRunner extends RedisRunner {
 	private final BlockingQueue<RobotAction> actionQueue;
 
-	public RedisProducerRunner(final CBSRenvironment parent, final String server) {
-		super(parent, server);
+	public RedisProducerRunner(final CBSRenvironment parent, final String server, final boolean ssl) {
+		super(parent, server, ssl);
 		this.actionQueue = new LinkedBlockingQueue<>();
 	}
 
@@ -48,7 +48,7 @@ class RedisProducerRunner extends RedisRunner {
 		if (action instanceof TabletOpenAction) { // block-all until established
 			while (!this.parent.isTabletConnected()) {
 				try {
-					Thread.sleep(0);
+					Thread.sleep(1);
 				} catch (final InterruptedException e) {
 					break;
 				}
