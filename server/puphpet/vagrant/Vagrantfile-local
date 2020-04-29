@@ -15,7 +15,6 @@ if Vagrant.has_plugin?('vagrant-hostmanager')
   config.hostmanager.enabled = true
   config.hostmanager.manage_host = true
 end
-
 machines.each do |i, machine|
   config.vm.define "#{machine['id']}" do |machine_id|
     machine_id.vm.box = "#{provider['box']}"
@@ -41,11 +40,9 @@ machines.each do |i, machine|
 
     if !machine['network']['public_network'].nil? &&
        machine['network']['public_network'].to_s != ''
-      machine_id.vm.network 'public_network'
-      if machine['network']['public_network'].to_s != '1'
-        machine_id.vm.network 'public_network',
-          ip: "#{machine['network']['public_network']}"
-      end
+      machine_id.vm.network 'public_network',
+        ip: "#{machine['network']['public_network']}",
+        bridge: "#{machine['network']['bridge']}"
     end
 
     if !machine['network']['forwarded_port'].nil?

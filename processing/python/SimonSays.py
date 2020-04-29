@@ -5,7 +5,7 @@ import time
 
 class SimonSays(Base.AbstractApplication):
     def __init__(self):
-        super(SimonSays, self).__init__(serverIP='192.168.0.12')
+        super(SimonSays, self).__init__(serverIP='192.168.0.200')
 
         self.host = True
         self.score = 0
@@ -28,7 +28,7 @@ class SimonSays(Base.AbstractApplication):
     def generate_random(self, min, max):
         if self.score * 0.05 < min - 0.5:
             self.speedup = self.score * 0.05
-        return round(random.uniform(min - self.speedup, max - self.speedup), 2)
+        return round(abs(random.uniform(min - self.speedup, max - self.speedup), 2))
 
     def physical_to_ingame(self, button):
         print("In the function: ", button)
