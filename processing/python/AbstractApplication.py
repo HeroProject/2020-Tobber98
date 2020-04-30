@@ -48,7 +48,7 @@ class AbstractApplication(object):
 
     def __send(self, channel, data):
         self.__redis.publish(channel, data)
-        # print("sent " + data + " on " + channel)
+        #print("sent " + data + " on " + channel)
 
     def stop(self):
         """Stop listening to incoming events (which is done in a thread) so the Python application can close."""
@@ -197,6 +197,10 @@ class AbstractApplication(object):
         white, red, green, blue, yellow, magenta, cyan, greenyellow or rainbow.
         An EyeColourStarted event will be sent when the change starts and a EyeColourDone event after it is done."""
         self.__send('action_eyecolour', colour)
+
+    def setLeds(self, args):
+        """Blablabla"""
+        self.__send('action_change_leds', '|'.join(args))
 
     def takePicture(self):
         """Instructs the robot to take a picture. See the onNewPictureFile function."""

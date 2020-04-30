@@ -2,8 +2,7 @@
 <Package name="SimonSaysHost" format_version="5">
     <Manifest src="manifest.xml" />
     <BehaviorDescriptions>
-        <BehaviorDescription name="behavior" src="behavior_1" xar="behavior.xar" />
-        <BehaviorDescription name="behavior" src="behavior" xar="behavior.xar" />
+        <BehaviorDescription name="behavior" src="sit-down" xar="behavior.xar" />
     </BehaviorDescriptions>
     <Dialogs />
     <Resources />

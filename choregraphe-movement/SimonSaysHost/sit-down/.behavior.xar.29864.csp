@@ -213,7 +213,7 @@
                 </ActuatorList>
               </Timeline>
             </Box>
-            <Box name="Sit Down" id="2" localization="8" tooltip="the robot tries to sit down from any position for a number of tries.&#x0A;&#x0A;Note: The number of tries can be set in parameters." x="256" y="208">
+            <Box name="Sit Down" id="2" localization="8" tooltip="the robot tries to sit down from any position for a number of tries.&#x0A;&#x0A;Note: The number of tries can be set in parameters." x="247" y="218">
               <bitmap>media/images/box/movement/sit_ground.png</bitmap>
               <script language="4">
                 <content>

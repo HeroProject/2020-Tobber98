@@ -49,6 +49,12 @@ class ReactToEvent(object):
         # Bumper pressed/released logic
         self.right_bumper_is_pressed = False
         self.left_bumper_is_pressed = False
+        self.hand_right_back_is_touched = False
+        self.hand_right_left_is_touched = False
+        self.hand_right_right_is_touched = False
+        self.hand_left_left_is_touched = False
+        self.hand_left_right_is_touched = False
+        self.hand_left_back_is_touched = False
 
         # Initialise Redis
         self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
@@ -133,8 +139,14 @@ class ReactToEvent(object):
         # Disconnect to the event to avoid repetitions
         self.hand_right_back_touched.signal.disconnect(self.hand_right_back_touched_id)
 
-        self.produce('HandRightBackTouched')
-        print('HandRightBackTouched detected')
+        if self.hand_right_back_is_touched:
+            self.produce("HandRightBackReleased")
+            print("HandRightBackReleased detected")
+            self.hand_right_back_is_touched = False
+        else:
+            self.produce('HandRightBackTouched')
+            print('HandRightBackTouched detected')
+            self.hand_right_back_is_touched = True
 
         # Reconnect again to the event
         self.hand_right_back_touched_id = self.hand_right_back_touched.signal.connect(functools.partial(self.handRightBackTouched, 'HandRightBackTouched'))
@@ -143,8 +155,14 @@ class ReactToEvent(object):
         # Disconnect to the event to avoid repetitions
         self.hand_right_left_touched.signal.disconnect(self.hand_right_left_touched_id)
 
-        self.produce('HandRightLeftTouched')
-        print('HandRightLeftTouched detected')
+        if self.hand_right_left_is_touched:
+            self.produce("HandRightLeftReleased")
+            print("HandRightLeftReleased detected")
+            self.hand_right_left_is_touched = False
+        else:
+            self.produce('HandRightLeftTouched')
+            print('HandRightLeftTouched detected')
+            self.hand_right_left_is_touched = True
 
         # Reconnect again to the event
         self.hand_right_left_touched_id = self.hand_right_left_touched.signal.connect(functools.partial(self.handRightLeftTouched, 'HandRightLeftTouched'))
@@ -153,8 +171,14 @@ class ReactToEvent(object):
         # Disconnect to the event to avoid repetitions
         self.hand_right_right_touched.signal.disconnect(self.hand_right_right_touched_id)
 
-        self.produce('HandRightRightTouched')
-        print('HandRightRightTouched detected')
+        if self.hand_right_right_is_touched:
+            self.produce("HandRightRightReleased")
+            print("HandRightRightReleased detected")
+            self.hand_right_right_is_touched = False
+        else:
+            self.produce('HandRightRightTouched')
+            print('HandRightRightTouched detected')
+            self.hand_right_right_is_touched = True
 
         # Reconnect again to the event
         self.hand_right_right_touched_id = self.hand_right_right_touched.signal.connect(functools.partial(self.handRightRightTouched, 'HandRightRightTouched'))
@@ -163,8 +187,14 @@ class ReactToEvent(object):
         # Disconnect to the event to avoid repetitions
         self.hand_left_left_touched.signal.disconnect(self.hand_left_left_touched_id)
 
-        self.produce('HandLeftLeftTouched')
-        print('HandLeftLeftTouched detected')
+        if self.hand_left_left_is_touched:
+            self.produce("HandLeftLeftReleased")
+            print("HandLeftLeftReleased detected")
+            self.hand_left_left_is_touched = False
+        else:
+            self.produce('HandLeftLeftTouched')
+            print('HandLeftLeftTouched detected')
+            self.hand_left_left_is_touched = True
 
         # Reconnect again to the event
         self.hand_left_left_touched_id = self.hand_left_left_touched.signal.connect(functools.partial(self.handLeftLeftTouched, 'HandLeftLeftTouched'))
@@ -173,8 +203,14 @@ class ReactToEvent(object):
         # Disconnect to the event to avoid repetitions
         self.hand_left_right_touched.signal.disconnect(self.hand_left_right_touched_id)
 
-        self.produce('HandLeftRightTouched')
-        print('HandLeftRightTouched detected')
+        if self.hand_left_right_is_touched:
+            self.produce("HandLeftRightReleased")
+            print("HandLeftRightReleased detected")
+            self.hand_left_right_is_touched = False
+        else:
+            self.produce('HandLeftRightTouched')
+            print('HandLeftRightTouched detected')
+            self.hand_left_right_is_touched = True
 
         # Reconnect again to the event
         self.hand_left_right_touched_id = self.hand_left_right_touched.signal.connect(functools.partial(self.handLeftRightTouched, 'HandLeftRightTouched'))
@@ -183,8 +219,14 @@ class ReactToEvent(object):
         # Disconnect to the event to avoid repetitions
         self.hand_left_back_touched.signal.disconnect(self.hand_left_back_touched_id)
 
-        self.produce('HandLeftBackTouched')
-        print('HandLeftBackTouched detected')
+        if self.hand_left_back_is_touched:
+            self.produce("HandLeftBackReleased")
+            print("HandLeftBackReleased detected")
+            self.hand_left_back_is_touched = False
+        else:
+            self.produce('HandLeftBackTouched')
+            print('HandLeftBackTouched detected')
+            self.hand_left_back_is_touched = True
 
         # Reconnect again to the event
         self.hand_left_back_touched_id = self.hand_left_back_touched.signal.connect(functools.partial(self.handLeftBackTouched, 'HandLeftBackTouched'))

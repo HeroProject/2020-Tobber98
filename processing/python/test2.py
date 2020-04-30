@@ -5,7 +5,7 @@ import time
 
 class Test(Base.AbstractApplication):
     def __init__(self):
-        super(Test, self).__init__(serverIP='192.168.0.13')
+        super(Test, self).__init__(serverIP='192.168.0.200')
         self.buttons = ["RightBumperPressed", "LeftBumperPressed", "BackBumperPressed", "FrontTactilTouched",
         "MiddleTactilTouched", "RearTactilTouched", "HandRightBackTouched", "HandRightLeftTouched", 
         "HandRightRightTouched", "HandLeftLeftTouched", "HandLeftRightTouched", "HandLeftBackTouched"]
@@ -13,6 +13,7 @@ class Test(Base.AbstractApplication):
 
     # Start of the game
     def start(self):
+        self.setLeds(["FaceLeds", "blue" "1"])
         self.buttonLock = Semaphore(0)
         while(True):
             self.buttonLock.acquire()
