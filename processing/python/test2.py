@@ -13,7 +13,8 @@ class Test(Base.AbstractApplication):
 
     # Start of the game
     def start(self):
-        self.setLeds(["FaceLeds", "blue" "1"])
+        self.setLeds(["FaceLeds", "blue", "1"])
+        # self.getAngles()
         self.buttonLock = Semaphore(0)
         while(True):
             self.buttonLock.acquire()
@@ -26,6 +27,8 @@ class Test(Base.AbstractApplication):
             self.button_pressed = event
             self.buttonLock.release()
 
+    # def onGetAngles(self, angles):
+    #     print(angles)
 
 if __name__ == "__main__":
     wam = Test()

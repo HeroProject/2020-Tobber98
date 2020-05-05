@@ -3,23 +3,24 @@ from threading import Semaphore
 import random
 import time
 
+
 class SimonSays(Base.AbstractApplication):
     def __init__(self):
         super(SimonSays, self).__init__(serverIP='192.168.0.200')
 
-        self.host = True
         self.score = 0
         self.speedup = 0
+        self.host = True
         self.can_press = False
 
-        self.ingame_buttons = ["bl", "br", "tl", "tr"] 
+        self.ingame_buttons = ["bl", "br", "tl", "tr"]
         self.physical_buttons_pressed = ["RightBumperPressed", "LeftBumperPressed", "HandRightBackPressed"
-        "HandRightLeftTouched", "HandRightRightTouched", "HandLeftLeftTouched", 
-        "HandLeftRightTouched", "HandLeftBackPressed"]
+                                         "HandRightLeftTouched", "HandRightRightTouched", "HandLeftLeftTouched",
+                                         "HandLeftRightTouched", "HandLeftBackPressed"]
 
-        self.physical_buttons_released = ["RightBumperReleased", "LeftBumperReleased", "HandRightBackReleased", 
-        "HandRightLeftReleased", "HandRightRightReleased", "HandLeftLeftReleased", 
-        "HandLeftRightReleased", "HandLeftBackReleased"]
+        self.physical_buttons_released = ["RightBumperReleased", "LeftBumperReleased", "HandRightBackReleased",
+                                          "HandRightLeftReleased", "HandRightRightReleased", "HandLeftLeftReleased",
+                                          "HandLeftRightReleased", "HandLeftBackReleased"]
 
         self.current_button = None
         self.button_pressed = None
@@ -47,32 +48,33 @@ class SimonSays(Base.AbstractApplication):
 
     # Generate single turn of the game
     def create_mole(self):
-        time.sleep(self.generate_random(.2, 3)) # could be lock instead of sleep
+        time.sleep(self.generate_random(1.5, 2.5))
         self.current_button = self.ingame_buttons[random.randrange(0, 4)]
 
-        
-        #Say the the button to press
+        # Say the the button to press, left/right is reversed.
         word_to_say = ""
-        if self.current_button == "bl":
+        if self.current_button == "br":
             word_to_say = "Linkervoet!"
-        elif self.current_button == "br":
+        elif self.current_button == "bl":
             word_to_say = "Rechtervoet!"
-        elif self.current_button == "tl":
+        elif self.current_button == "tr":
             word_to_say = "Linkerhand!"
         else:
             word_to_say = "Rechterhand!"
+
         self.say(word_to_say)
+        self.setLeds(["FaceLeds", "red", "0.5"])
         self.speechLock.acquire()
-        
-        t = self.generate_random(3,9)
-        print("The time to press is: ", t)
-        print('Value before lock: ', self.buttonLock._value)
+
+        t = self.generate_random(3, 6)
+        # print("The time to press is: ", t)
+        # print('Value before lock: ', self.buttonLock._value)
         self.can_press = True
+        self.setLeds(["FaceLeds", "green", "0.05"])
         self.buttonLock.acquire(timeout=t)
-        print("Value after locked: ", self.buttonLock._value)
-        print("Current button to press: {} ({})\nButton pressed: {}".format(self.current_button, word_to_say, self.button_pressed))
+        # print("Value after locked: ", self.buttonLock._value)
+        # print("Current button to press: {} ({})\nButton pressed: {}".format(self.current_button, word_to_say, self.button_pressed))
         if self.current_button == self.physical_to_ingame(self.button_pressed):
-            time.sleep(1.5)
             return True
         return False
 
@@ -101,7 +103,7 @@ class SimonSays(Base.AbstractApplication):
     def start(self):
         self.playing = True
 
-        #Set language to Dutch
+        # Set language to Dutch
         self.langLock = Semaphore(0)
         self.setLanguage('nl-NL')
         self.langLock.acquire()
@@ -129,14 +131,19 @@ class SimonSays(Base.AbstractApplication):
                     self.score += 1
                 else:
                     break
-        
+
         if self.playing:
-            self.say("Ah jammer, je was niet snel genoeg. Je score was {:d}!".format(self.score))
+            if self.can_press:
+                self.say(
+                    "Ah jammer, je was niet snel genoeg. Je score was {:d}!".format(self.score))
+            else:
+                self.say(
+                    "Ah jammmer, dat was de verkeerde knop. Je score was {:d}!".format(self.score))
         else:
             self.say("Oké, we stoppen.")
         self.speechLock.acquire()
         self.score = 0
-    
+
     # On return of an event perform this function
     def onRobotEvent(self, event):
         if event == "LanguageChanged":
@@ -146,8 +153,9 @@ class SimonSays(Base.AbstractApplication):
             self.speechLock.release()
 
         if event in self.physical_buttons_pressed:
-            print("... ", event)
+            print("... {}".format(event))
             if self.can_press:
+                print("And this came through: {} ...".format(event))
                 self.can_press = False
                 self.setLeds(["FaceLeds", "blue", ".05"])
                 self.button_pressed = event
@@ -159,7 +167,7 @@ class SimonSays(Base.AbstractApplication):
 
         if event in ["FrontTactilTouched", "MiddleTactilTouched", "RearTactilTouched"]:
             self.playing = False
-        
+
         if event == "GestureDone":
             self.movementLock.release()
 

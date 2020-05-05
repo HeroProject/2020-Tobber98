@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<package uuid="simonsayshost-a4203c" version="0.0.1" installOnlyAtStartup="false">
+<package version="0.0.1" installOnlyAtStartup="false" uuid="simonsayshost-a4203c">
  <names>
   <name lang="en_US">SimonSaysHost</name>
  </names>

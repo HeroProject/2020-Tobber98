@@ -7,7 +7,7 @@ import redis
 
 class AbstractApplication(object):
     __topics = ["events_robot", "detected_person", "recognised_face", "audio_language", "audio_intent", "audio_newfile",
-                "text_speech", "picture_newfile"]
+                "text_speech", "picture_newfile"] # , "get_angles"
 
     def __init__(self, serverIP):
         self.__redis = redis.Redis(serverIP, ssl=True, ssl_ca_certs='../cert.pem')
@@ -42,6 +42,8 @@ class AbstractApplication(object):
                     self.onSpeechText(text=data)
                 elif channel == self.__topics[7]:
                     self.onNewPictureFile(pictureFile=data)
+                # elif channel == self.__topics[8]:
+                #     self.onGetAngles(angles=data)
             else:
                 time.sleep(0.001)
         self.__pubsub.close()
@@ -104,6 +106,9 @@ class AbstractApplication(object):
         """Triggered whenever a new picture has been stored to an image (JPG) file. See takePicture.
         Given is the path to the taken picture."""
         pass
+
+    # def onGetAngles(self, angles):
+    #     pass
 
     ##
     # Above are the on### 'event functions'; below are the 'action functions' only.
@@ -201,6 +206,9 @@ class AbstractApplication(object):
     def setLeds(self, args):
         """Blablabla"""
         self.__send('action_change_leds', '|'.join(args))
+
+    # def getAngles(self):
+    #     self.__send('action_angles', '')
 
     def takePicture(self):
         """Instructs the robot to take a picture. See the onNewPictureFile function."""

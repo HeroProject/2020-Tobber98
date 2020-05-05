@@ -66,6 +66,8 @@ class RobotConsumer():
             self.produce('ChangeLedsStarted')
             self.changeLeds(data)
             self.produce('changeLedsDone')
+        # elif channel == 'action_angles':
+        #     self.getAngles()
         elif channel == 'audio_language':
             self.changeLanguage(data)
             self.produce('LanguageChanged')
@@ -161,6 +163,11 @@ class RobotConsumer():
         # print self.leds.listGroups()
         # print self.leds.listLEDs()
 
+    # def getAngles(self):
+    #     print(self.motion.getAngles("Body", False))
+    #     value = bytes(self.motion.getAngles("Body", False))
+    #     self.redis.publish('get_angles', value)
+
     def changeLanguage(self, value):
         if value == 'nl-NL':
             self.language.setLanguage('Dutch')
@@ -181,5 +188,5 @@ if __name__ == '__main__':
     parser.add_argument('--server', type=str, default='localhost', help='Server IP address. Default is localhost.')
     args = parser.parse_args()
 
-    robot_consumer = RobotConsumer(server=args.server, topics=['action_say', 'action_say_animated', 'action_gesture', 'action_eyecolour', 'action_change_leds', 'audio_language', 'action_idle', 'action_play_audio', 'action_speech_param', 'action_turn', 'action_turn_small'])
+    robot_consumer = RobotConsumer(server=args.server, topics=['action_say', 'action_say_animated', 'action_gesture', 'action_eyecolour', 'action_change_leds', 'audio_language', 'action_idle', 'action_play_audio', 'action_speech_param', 'action_turn', 'action_turn_small']) #'action_angles'
     robot_consumer.runForever()
