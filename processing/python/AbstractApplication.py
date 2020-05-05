@@ -33,8 +33,9 @@ class AbstractApplication(object):
                 elif channel == self.__topics[3]:
                     self.onAudioLanguage(languageKey=data)
                 elif channel == self.__topics[4]:
-                    data = input("Geef audio input: ")
-                    data = data.split(" ")
+                    # data = input("Geef audio input: ")
+                    data = data.split("|")
+                    print(data)
                     self.onAudioIntent(intentName=data[0], *data[1:])
                 elif channel == self.__topics[5]:
                     self.onNewAudioFile(audioFile=data)

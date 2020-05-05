@@ -10,7 +10,7 @@ class SimonSays(Base.AbstractApplication):
 
         self.score = 0
         self.speedup = 0
-        self.host = True
+        self.host = False
         self.can_press = False
 
         self.ingame_buttons = ["bl", "br", "tl", "tr"]
@@ -79,25 +79,44 @@ class SimonSays(Base.AbstractApplication):
         return False
 
     def guess(self):
-        self.setAudioContext('make_move')
+        self.say("Ik luister.")
+        self.speechLock.acquire()
         self.turnLock = Semaphore(0)
+        self.setAudioContext("make_move")
+        self.setAudioHints("linkervoet", "rechtervoet",
+                           "linkerhand", "rechterhand", "fout")
         self.startListening()
-        self.turnLock.acquire(timeout=3)
+        self.turnLock.acquire(timeout=5)
         self.stopListening()
 
-        if self.move_to_make == "linkervoet":
-            print("Linkervoet bewegen")
+        if self.move_to_make == "fout":
+            self.say("Ah jammer, nu mag jij weer!")
+            self.speechLock.acquire()
+            self.host = True
+            return False
+
+        elif self.move_to_make == "linkervoet":
+            self.doGesture("simonsayshost-a4203c/move-left-foot")
+            self.movementLock.acquire()
+
         elif self.move_to_make == "rechtervoet":
-            print("Rechtervoet bewegen")
+            self.doGesture("simonsayshost-a4203c/move-right-foot")
+            self.movementLock.acquire()
+
         elif self.move_to_make == "linkerhand":
-            print("Linkerhand bewegen")
+            self.doGesture("simonsayshost-a4203c/move-left-arm")
+            self.movementLock.acquire()
+
         elif self.move_to_make == "rechterhand":
-            print("Rechterhand bewegen")
+            self.doGesture("simonsayshost-a4203c/move-right-arm")
+            self.movementLock.acquire()
+
         else:
-            print("Sorry, ik weet het niet")
+            self.say("Sorry, ik kon je niet goed horen!")
+            self.speechLock.acquire()
 
         # Listen if correct?
-        return False
+        return True
 
     # Start of the game
     def start(self):
@@ -174,7 +193,9 @@ class SimonSays(Base.AbstractApplication):
     # When there is an audio intent found that corresponds with the current context,
     # perform a certain action.
     def onAudioIntent(self, *args, intentName):
+        print("Intent: ", intentName)
         if intentName == 'make_move' and len(args) > 0:
+            print(args[0])
             self.move_to_make = args[0]
             self.turnLock.release()
 

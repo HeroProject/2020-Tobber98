@@ -3,6 +3,11 @@
     <Manifest src="manifest.xml" />
     <BehaviorDescriptions>
         <BehaviorDescription name="behavior" src="sit-down" xar="behavior.xar" />
+        <BehaviorDescription name="behavior" src="move-right-arm" xar="behavior.xar" />
+        <BehaviorDescription name="behavior" src="move-left-arm" xar="behavior.xar" />
+        <BehaviorDescription name="behavior" src="move-left-foot" xar="behavior.xar" />
+        <BehaviorDescription name="behavior" src="move-right-foot" xar="behavior.xar" />
+        <BehaviorDescription name="behavior" src="missed-move-to-make" xar="behavior.xar" />
     </BehaviorDescriptions>
     <Dialogs />
     <Resources />

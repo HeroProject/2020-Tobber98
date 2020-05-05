@@ -4,17 +4,17 @@ from threading import Semaphore
 
 class DialogFlowSampleApplication(Base.AbstractApplication):
     def __init__(self):
-        super(DialogFlowSampleApplication, self).__init__(serverIP='192.168.56.102')
+        super(DialogFlowSampleApplication, self).__init__(serverIP='192.168.0.200')
 
     def main(self):
         # Set the correct language (and wait for it to be changed)
         self.langLock = Semaphore(0)
-        self.setLanguage('en-US')
+        self.setLanguage('nl-NL')
         self.langLock.acquire()
 
         # Pass the required Dialogflow parameters (add your Dialogflow parameters)
-        self.setDialogflowKey('<keyfile>.json')
-        self.setDialogflowAgent('<projectid>')
+        self.setDialogflowKey('ronald-ywcxbh-a2ca41d812bb.json')
+        self.setDialogflowAgent('ronald-ywcxbh')
 
         # Make the robot ask the question, and wait until it is done speaking
         self.speechLock = Semaphore(0)
