@@ -23,7 +23,7 @@ vagrantfile:
                         id: default
                         hostname: cbsr.dev
                         network:
-                            public_network: 192.168.178.200
+                            public_network: 192.168.0.200
                             bridge: >-
                                 en0: Wifi (AirPort)
                         memory: '4096'

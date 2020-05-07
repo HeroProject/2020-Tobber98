@@ -7,6 +7,8 @@ import time
 class SimonSays(Base.AbstractApplication):
     def __init__(self):
         super(SimonSays, self).__init__(serverIP='192.168.0.200')
+        self.first_time = False
+
 
         self.score = 0
         self.speedup = 0
@@ -68,7 +70,7 @@ class SimonSays(Base.AbstractApplication):
         t = self.generate_random(3, 6)
         self.can_press = True
         self.setLeds({'name': 'rotate', 'colour': 0x0033FF33,
-                      'rotation_time': 1, 'time': t})
+                      'rotation_time': 0.5, 'time': t})
         self.buttonLock.acquire(timeout=t)
         if self.current_button == self.physical_to_ingame(self.button_pressed):
             return True
@@ -116,23 +118,35 @@ class SimonSays(Base.AbstractApplication):
         # Listen if correct?
         return True
 
+    def explain_game(self):
+        self.sayAnimated("Hey, leuk dat je *spelnaam* met mij wil spelen. \
+            Ik zal het proberen uit te leggen. Er zijn twee manieren om het te spelen. \
+            De eerste manier is dat ik zeg wat je aan moet tikken en de tweede manier is dat jij zegt wat ik moet bewegen. \
+            Mijn ogen zullen draaien als je kunt drukken op mijn knoppen.")
+        self.speechLock.acquire()
+
     # Start of the game
     def start(self):
-        self.playing = True
-
         # Set language to Dutch
         self.langLock = Semaphore(0)
         self.setLanguage('nl-NL')
         self.langLock.acquire()
 
+        self.speechLock = Semaphore(0)
+        if self.first_time:
+            self.explain_game()
+
+
+        self.playing = True
+
         # Put robot in right position for host
         self.movementLock = Semaphore(0)
+        self.setIdle()
         self.doGesture("simonsayshost-a4203c/sit-down")
         self.movementLock.acquire()
 
         # Start of game message
-        self.speechLock = Semaphore(0)
-        self.say("Laten we beginnen. Druk op alles wat ik zeg! Als je wilt stoppen hoef je alleen maar op mijn hoofd te drukken.")
+        self.say("Laten we beginnen. Druk op mijn hoofd om the stoppen!")
         self.speechLock.acquire()
 
         # Call button and wait for response
@@ -170,9 +184,8 @@ class SimonSays(Base.AbstractApplication):
             self.speechLock.release()
 
         if event in self.physical_buttons_pressed:
-            print("... {}".format(event))
             if self.can_press:
-                print("And this came through: {} ...".format(event))
+                print("... {}".format(event))
                 self.can_press = False
                 self.setLeds({'name': 'fade', 'group': 'FaceLeds',
                               'colour': 0x000011FF, 'time': .05})
@@ -180,8 +193,7 @@ class SimonSays(Base.AbstractApplication):
                 self.buttonLock.release()
 
         if event in self.physical_buttons_released:
-            print("... ", event)
-            self.setLeds({'name': 'off', 'group': 'FaceLeds'})
+            self.setLeds({'name': 'fade', 'group': 'FaceLeds', 'colour': 0x00FFFFFF, 'time': .05})
 
         if event in ["FrontTactilTouched", "MiddleTactilTouched", "RearTactilTouched"]:
             self.playing = False

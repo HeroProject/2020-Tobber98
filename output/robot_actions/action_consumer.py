@@ -9,6 +9,8 @@ import os
 import wget
 import shutil
 
+import json
+
 YELLOW = 0x969600
 MAGENTA = 0xff00ff
 ORANGE = 0xfa7800
@@ -206,9 +208,12 @@ class RobotConsumer:
             self.leds.stop(self.rotate_eyes_id)
             self.leds.fadeRGB(str(led_dict['group']), led_dict['colour'], led_dict['time'])
         elif led_dict['name'] == 'fadeList':
+            self.leds.stop(self.rotate_eyes_id)
             self.leds.fadeListRGB(str(led_dict['group']), led_dict['colour'], led_dict['time'])
         elif led_dict['name'] == 'rotate':
             self.rotate_eyes_id = self.leds.post.rotateEyes(led_dict['colour'], led_dict['rotation_time'], led_dict['time'])
+        elif led_dict['name'] == 'stop_rotate':
+            self.leds.stop(self.rotate_eyes_id)
 
     def change_language(self, value):
         if value == 'nl-NL':
