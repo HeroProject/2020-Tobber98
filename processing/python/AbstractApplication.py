@@ -1,6 +1,7 @@
 import time
 from pathlib import Path
 from threading import Thread
+import json
 
 import redis
 
@@ -205,11 +206,21 @@ class AbstractApplication(object):
         self.__send('action_eyecolour', colour)
 
     def setLeds(self, args):
-        """Blablabla"""
-        self.__send('action_change_leds', '|'.join(args))
+        """Turns leds on/off, 4 different actions are possible depicted by 'name': off, fade, fadeList, rotate. 
+        These actions can be chosen by having a dict with as key 'name' and value either of the 4. 
+        Depending on the choice of name different keys can be chosen for off it is the name of group to be turned off depicted by the key 'group'.
+        The fade option requires the keys: group(string), colour(RGB hex: 0x00RRGGBB or string) and time(float).
+        the fadelist option requires the keys: group(string), colour(list of RGB hex: 0x00RRGGBB or string), time(list of floats).
+        The rotate option uses keys: colour(RGB hex: 0x00RRGGBB), rotation_time(float) and time(float). """
+        self.__send('action_change_leds', json.dumps(args))
 
-    # def getAngles(self):
-    #     self.__send('action_angles', '')
+    def setRest(self):
+        # Test version
+        self.__send('action_rest', '')
+
+    def setWakeUp(self):
+        # Test version
+        self.__send('action_wakeup', '')
 
     def takePicture(self):
         """Instructs the robot to take a picture. See the onNewPictureFile function."""

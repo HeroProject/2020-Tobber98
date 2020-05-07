@@ -11,6 +11,7 @@ class Test(Base.AbstractApplication):
     def start(self):
         self.buttonLock = Semaphore(0)
         self.setIdle()
+        self.setRest()
         self.buttonLock.acquire()
 
     

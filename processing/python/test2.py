@@ -13,7 +13,9 @@ class Test(Base.AbstractApplication):
 
     # Start of the game
     def start(self):
-        self.setLeds(["FaceLeds", "blue", "1"])
+        self.setLeds({"name": "rotate", "colour": 0x0033ee33, "rotation_time": 1.0, "time": 5.0})
+        #self.setLeds(["rotate","", "blue", "1"])
+        #self.setEyeColour('rotate')
         # self.getAngles()
         self.buttonLock = Semaphore(0)
         while(True):

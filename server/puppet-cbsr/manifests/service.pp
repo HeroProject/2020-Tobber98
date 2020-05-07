@@ -49,4 +49,7 @@ class cbsr::service inherits cbsr {
   service { 'stream_video':
     enable      =>  false
   }
+  service { 'robot_memory':
+    enable      =>  false
+  }
 }

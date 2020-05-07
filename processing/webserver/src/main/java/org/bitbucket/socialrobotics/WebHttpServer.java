@@ -56,11 +56,7 @@ public class WebHttpServer extends NanoHTTPD {
 		} else {
 			final File f = new File(this.homeDir, uri);
 			if (f.isDirectory()) {
-				if (indexFile != null) {
-					return respond(headers, session, uri + indexFile);
-				} else {
-					return getForbiddenResponse("No directory listing");
-				}
+				return respond(headers, session, uri + indexFile);
 			} else {
 				final String mimeTypeForFile = getMimeTypeForFile(uri);
 				try {
@@ -85,9 +81,9 @@ public class WebHttpServer extends NanoHTTPD {
 		return newFixedLengthResponse(Status.FORBIDDEN, NanoHTTPD.MIME_PLAINTEXT, "FORBIDDEN: " + s);
 	}
 
-	private static Response getInternalErrorResponse(final String s) {
+	/*private static Response getInternalErrorResponse(final String s) {
 		return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, "INTERNAL ERROR: " + s);
-	}
+	}*/
 
 	private static Response getNotFoundResponse() {
 		return newFixedLengthResponse(Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT, "Error 404, file not found.");

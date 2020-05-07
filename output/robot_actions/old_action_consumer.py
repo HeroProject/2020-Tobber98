@@ -1,27 +1,25 @@
-import argparse
-import ssl
-from signal import signal, SIGTERM, SIGINT, pause
+'''
 
+import argparse
 from naoqi import ALProxy
 from threading import Thread
+import time
 import redis
 import os
 import wget
-import shutil
+import json
 
 YELLOW = 0x969600
 MAGENTA = 0xff00ff
 ORANGE = 0xfa7800
 GREEN = 0x00ff00
 
-
 class RobotConsumer:
     def __init__(self, server, topics):
         self.server = server
         self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
-        self.pubsub.subscribe(**dict.fromkeys(topics, self.execute))
-        self.pubsub_thread = self.pubsub.run_in_thread(sleep_time=0.001)
+        self.pubsub.subscribe(*topics)
 
         robot_ip = '127.0.0.1'
         robot_port = 9559
@@ -36,20 +34,13 @@ class RobotConsumer:
         self.motion = ALProxy('ALMotion', robot_ip, robot_port)
         self.audio_player = ALProxy('ALAudioPlayer', robot_ip, robot_port)
 
-        # create a folder on robot to temporarily store loaded audio files
-        self.audio_folder = os.path.join(os.getcwd(), 'sounds')
-        if not (os.path.exists(self.audio_folder)):
-            os.mkdir(self.audio_folder)
-
-        # Ignores SSL certificate when using wget to download audio files from server over https
-        # Solution from: https://thomas-cokelaer.info/blog/2016/01/python-certificate-verified-failed/
-        ssl._create_default_https_context = ssl._create_unverified_context
-
-        # Register cleanup handlers
-        signal(SIGTERM, self.cleanup)
-        signal(SIGINT, self.cleanup)
-
-        self.running = True
+    def update(self):
+        msg = self.pubsub.get_message()
+        if msg is not None:
+            t = Thread(target = self.execute, args = (msg, ))
+            t.start()
+        else:
+            time.sleep(0.001)
 
     def produce(self, value):
         self.redis.publish('events_robot', value)
@@ -72,14 +63,16 @@ class RobotConsumer:
             self.produce('GestureDone')
         elif channel == 'action_eyecolour':
             self.produce('EyeColourStarted')
-            self.change_eye_colour(data)
+            self.changeEyeColour(data)
             self.produce('EyeColourDone')
         elif channel == 'action_change_leds':
             self.produce('ChangeLedsStarted')
-            self.change_leds(data)
-            self.produce('changeLedsDone') 
+            self.changeLeds(data)
+            self.produce('changeLedsDone')
+        # elif channel == 'action_angles':
+        #     self.getAngles()
         elif channel == 'audio_language':
-            self.change_language(data)
+            self.changeLanguage(data)
             self.produce('LanguageChanged')
         elif channel == 'action_idle':
             self.motion.setStiffnesses('Head', 0.6)
@@ -101,7 +94,7 @@ class RobotConsumer:
             self.motion.moveInit()
             if data == 'left':
                 self.motion.post.moveTo(0.0,0.0,1.5,1.0)
-            else:  # right
+            else: # right
                 self.motion.post.moveTo(0.0,0.0,-1.5,1.0)
             self.motion.waitUntilMoveIsFinished()
             self.produce('TurnDone')
@@ -111,57 +104,25 @@ class RobotConsumer:
             self.motion.moveInit()
             if data == 'left':
                 self.motion.post.moveTo(0.0,0.0,0.25,1.0)
-            else:  # right
+            else: # right
                 self.motion.post.moveTo(0.0,0.0,-0.25,1.0)
             self.motion.waitUntilMoveIsFinished()
             self.produce('SmallTurnDone')
-        elif channel == 'action_load_audio':
-            if data:
-                audio_file = self.download_audio(data)
-                audio_id = self.audio_player.loadFile(audio_file)
-                self.redis.publish('robot_audio_loaded', audio_id)
-                self.produce('LoadAudioDone')
         elif channel == 'action_play_audio':
             self.audio_player.stopAll()
-            params = data.split(';')
-            if params[0] and params[1] == 'raw':
-                audio_file = self.download_audio(params[0])
+            if data:
+                wget.download('http://'+self.server+':8000/audio/'+data, data)
                 self.produce('PlayAudioStarted')
-                self.audio_player.playFile(audio_file)
+                self.audio_player.playFile(os.getcwd()+'/'+data)
                 self.produce('PlayAudioDone')
-                os.remove(audio_file)
-            elif params[0] and params[1] == 'loaded':
-                self.produce('PlayAudioStarted')
-                self.audio_player.play(int(params[0]))
-                self.produce('PlayAudioDone')
-        elif channel == 'action_clear_loaded_audio':
-            self.audio_player.unloadAllFiles()
-            shutil.rmtree(self.audio_folder)
-            os.mkdir(self.audio_folder)
-            self.produce('ClearLoadedAudioDone')
+                os.remove(data)
         elif channel == 'action_speech_param':
             params = data.split(';')
             self.tts.setParameter(params[0], float(params[1]))
-        elif channel == 'action_wakeup':
-            self.produce('WakeUpStarted')
-            self.motion.wakeUp()
-            self.produce('WakeUpDone')
-        elif channel == 'action_rest':
-            self.produce('RestStarted')
-            self.motion.rest()
-            self.produce('RestDone')
-        elif channel == 'action_set_breathing':
-            params = data.split(';')
-            enable = bool(int(params[1]))
-            self.motion.setBreathEnabled(params[0], enable)
-            if enable:
-                self.produce('BreathingEnabled')
-            else:
-                self.produce('BreathingDisabled')
         else:
             print 'Unknown command'
 
-    def change_eye_colour(self, value):
+    def changeEyeColour(self, value):
         self.leds.off('FaceLeds')
         if value == 'rainbow':    # make the eye colours rotate
             p1 = Thread(target = self.leds.fadeListRGB, args = ('FaceLedsBottom', [YELLOW, MAGENTA, ORANGE, GREEN], [0, 0.5, 1, 1.5], ))
@@ -193,11 +154,14 @@ class RobotConsumer:
             p2.join()
             p3.join()
             p4.join()
+
         elif value:
             self.leds.fadeRGB('FaceLeds', value, 0.1)
 
-    def change_leds(self, value):
+    def changeLeds(self, value):
+        print type(value) 
         led_dict = json.loads(value)
+        print type(led_dict)
         
         if led_dict['name'] == 'off':
             self.leds.stop(self.rotate_eyes_id)
@@ -209,32 +173,49 @@ class RobotConsumer:
             self.leds.fadeListRGB(str(led_dict['group']), led_dict['colour'], led_dict['time'])
         elif led_dict['name'] == 'rotate':
             self.rotate_eyes_id = self.leds.post.rotateEyes(led_dict['colour'], led_dict['rotation_time'], led_dict['time'])
+            # self.keep_rotating = True
+            # time = int(led_dict['time'])
+            # while self.keep_rotating and int(time) > 0:
+            #     print(time)
+            #     time -= led_dict['rotation_time']
+            #     print(self.leds.__dir__) 
+            #     x = self.leds.post.rotateEyes(led_dict['colour'], led_dict['rotation_time'], led_dict['rotation_time'])
+            #     print(x)
+            #     print("Test time")
+            # p1 = Thread(target= self.leds.rotateEyes, args=(led_dict['colour'], led_dict['rotation_time'], led_dict['time']))
+            # p1.start()
 
-    def change_language(self, value):
+            # p1.join()
+
+        # led_values = value.split("|")
+        # if led_values[0] == 'off':
+        #     self.leds.off(led_values[1])
+        # elif led_values[0] == 'rotate':
+        #     self.leds.rotateEyes(led_values[1], float(led_values[2]), float(led_values[3]))
+
+        # elif led_values[0] == 'fade':
+        #     self.leds.fadeRGB(led_values[1], led_values[2], float(led_values[3]))
+        # print self.leds.listGroups()
+        # print self.leds.listLEDs()
+
+    # def getAngles(self):
+    #     print(self.motion.getAngles("Body", False))
+    #     value = bytes(self.motion.getAngles("Body", False))
+    #     self.redis.publish('get_angles', value)
+
+    def changeLanguage(self, value):
         if value == 'nl-NL':
             self.language.setLanguage('Dutch')
         else:
             self.language.setLanguage('English')
 
-    def download_audio(self, file_name):
-        local_audio_location = os.path.join(self.audio_folder, file_name)
-        wget.download('https://' + self.server + ':8000/audio/' + file_name, local_audio_location)
-        return local_audio_location
-
-    def run_forever(self):
-        while self.running:
-            pause()
-
-    def cleanup(self, signum, frame):
-        if self.running:
-            self.running = False
-            print('Trying to exit gracefully...')
-            try:
-                self.pubsub_thread.stop()
-                self.redis.close()
-                print('Graceful exit was successful.')
-            except redis.RedisError as err:
-                print('A graceful exit has failed due to: ' + err.message)
+    def runForever(self):
+        try:
+            while True:
+                self.update()
+        except KeyboardInterrupt:
+            print 'Interrupted'
+            self.pubsub.close()
 
 
 if __name__ == '__main__':
@@ -242,10 +223,6 @@ if __name__ == '__main__':
     parser.add_argument('--server', type=str, default='localhost', help='Server IP address. Default is localhost.')
     args = parser.parse_args()
 
-    robot_consumer = RobotConsumer(server=args.server, topics=['action_say', 'action_say_animated', 'action_gesture',
-                                                               'action_eyecolour', 'audio_language', 'action_idle',
-                                                               'action_play_audio', 'action_load_audio', 'action_clear_audio',
-                                                               'action_speech_param', 'action_turn',
-                                                               'action_turn_small', 'action_wakeup', 'action_rest',
-                                                               'action_set_breathing', 'action_change_leds'])
-    robot_consumer.run_forever()
+    robot_consumer = RobotConsumer(server=args.server, topics=['action_say', 'action_say_animated', 'action_gesture', 'action_eyecolour', 'action_change_leds', 'audio_language', 'action_idle', 'action_play_audio', 'action_speech_param', 'action_turn', 'action_turn_small']) #'action_angles'
+    robot_consumer.runForever()
+'''

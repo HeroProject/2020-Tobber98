@@ -10,7 +10,7 @@ class SimonSays(Base.AbstractApplication):
 
         self.score = 0
         self.speedup = 0
-        self.host = False
+        self.host = True
         self.can_press = False
 
         self.ingame_buttons = ["bl", "br", "tl", "tr"]
@@ -63,17 +63,13 @@ class SimonSays(Base.AbstractApplication):
             word_to_say = "Rechterhand!"
 
         self.say(word_to_say)
-        self.setLeds(["FaceLeds", "red", "0.5"])
         self.speechLock.acquire()
 
         t = self.generate_random(3, 6)
-        # print("The time to press is: ", t)
-        # print('Value before lock: ', self.buttonLock._value)
         self.can_press = True
-        self.setLeds(["FaceLeds", "green", "0.05"])
+        self.setLeds({'name': 'rotate', 'colour': 0x0033FF33,
+                      'rotation_time': 1, 'time': t})
         self.buttonLock.acquire(timeout=t)
-        # print("Value after locked: ", self.buttonLock._value)
-        # print("Current button to press: {} ({})\nButton pressed: {}".format(self.current_button, word_to_say, self.button_pressed))
         if self.current_button == self.physical_to_ingame(self.button_pressed):
             return True
         return False
@@ -86,6 +82,8 @@ class SimonSays(Base.AbstractApplication):
         self.setAudioHints("linkervoet", "rechtervoet",
                            "linkerhand", "rechterhand", "fout")
         self.startListening()
+        self.setLeds({'name': 'rotate', 'colour': 0x0033FF33,
+                      'rotation_time': 1, 'time': 5.0})
         self.turnLock.acquire(timeout=5)
         self.stopListening()
 
@@ -176,13 +174,14 @@ class SimonSays(Base.AbstractApplication):
             if self.can_press:
                 print("And this came through: {} ...".format(event))
                 self.can_press = False
-                self.setLeds(["FaceLeds", "blue", ".05"])
+                self.setLeds({'name': 'fade', 'group': 'FaceLeds',
+                              'colour': 0x000011FF, 'time': .05})
                 self.button_pressed = event
                 self.buttonLock.release()
 
         if event in self.physical_buttons_released:
             print("... ", event)
-            self.setLeds(["off", "FaceLeds"])
+            self.setLeds({'name': 'off', 'group': 'FaceLeds'})
 
         if event in ["FrontTactilTouched", "MiddleTactilTouched", "RearTactilTouched"]:
             self.playing = False

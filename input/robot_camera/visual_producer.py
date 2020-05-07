@@ -1,7 +1,12 @@
 import argparse
+import sys
 import time
+from signal import signal, SIGTERM, SIGINT
+from threading import Thread
+
 import redis
 import qi
+
 
 class VideoProcessingModule(object):
     def __init__(self, app, server, resolution, colorspace, frame_ps):
@@ -11,9 +16,10 @@ class VideoProcessingModule(object):
         super(VideoProcessingModule, self).__init__()
         app.start()
         session = app.session
-        self.resolution = resolution
         self.colorspace = colorspace
         self.frame_ps = frame_ps
+        # The watching thread will poll the camera 2 times the frame rate to make sure it is not the bottleneck.
+        self.polling_sleep = 1 / (self.frame_ps * 2)
 
         # Get the service ALVideoDevice
         self.video_service = session.service('ALVideoDevice')
@@ -21,60 +27,94 @@ class VideoProcessingModule(object):
 
         self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
-        self.pubsub.subscribe('action_video')
+        self.pubsub.subscribe(**{'action_video': self.execute})
+        self.pubsub_thread = self.pubsub.run_in_thread(sleep_time=0.001)
 
-        self.frame = 0
-        possible_resolutions = {'0':[160,120],'1':[320,240],'2':[640,480],'3':[1280,960],'4':[2560,1920],'7':[80,60],'8':[40,30]}
+        possible_resolutions = {'0': [160, 120], '1': [320, 240], '2': [640, 480], '3': [1280, 960],
+                                '4': [2560, 1920], '7': [80, 60], '8': [40, 30]}
+
         if str(resolution) in possible_resolutions.keys():
-            self.redis.set('image_size', str(possible_resolutions[str(resolution)][0])+' '+str(possible_resolutions[str(resolution)][1]))
-
-    def update(self):
-        msg = self.pubsub.get_message()
-        if msg is not None:
-            self.execute(msg)
+            self.resolution = resolution
+            self.redis.set('image_size', str(possible_resolutions[str(resolution)][0]) + ' ' + str(
+                possible_resolutions[str(resolution)][1]))
         else:
-            time.sleep(0.001)
+            raise ValueError(str(resolution) + " is not a valid resolution")
+
+        # Register cleanup handlers
+        signal(SIGTERM, self.cleanup)
+        signal(SIGINT, self.cleanup)
+
+        self.is_robot_watching = False
+        self.subscriber_id = None
+        self.watching_thread = None
+        self.running = True
 
     def execute(self, message):
-        data = message['data'] # only subscribed to 1 topic
+        data = message['data']  # only subscribed to 1 topic
         if data == 'start watching':
-            self.is_robot_watching = True
-            self.watch()
+            if self.is_robot_watching:
+                print('Robot is already watching')
+            else:
+                self.start_watching()
         elif data == 'stop watching':
-            self.is_robot_watching = False
+            if self.is_robot_watching:
+                self.stop_watching()
+            else:
+                print('Robot already stopped watching')
         else:
-            print 'unknown command:', message.value()
+            print('unknown command: ' + message.value())
 
     def run_forever(self):
-        try:
-            while True:
-                self.update()
-        except KeyboardInterrupt:
-            print 'Interrupted'
-            self.pubsub.close()
+        print('Video producer started')
+        while self.running:
+            time.sleep(0.1)
 
-    def watch(self):
+    def cleanup(self, signum, frame):
+        if self.running:
+            if self.is_robot_watching:
+                self.stop_watching()
+            self.running = False
+            print('Trying to exit gracefully...')
+            try:
+                self.pubsub_thread.stop()
+                self.redis.close()
+                print('Graceful exit was successful.')
+            except redis.RedisError as err:
+                print('A graceful exit has failed due to: ' + err.message)
+
+    def start_watching(self):
         # subscribe to the module (top camera)
-        subscriberID = self.video_service.subscribeCamera(self.module_name, 0, self.resolution, self.colorspace, self.frame_ps)
-        print 'subscribed, watching...'
+        print('Start watching received, subscribing...')
+        self.is_robot_watching = True
+        self.subscriber_id = self.video_service.subscribeCamera(self.module_name, 0, self.resolution,
+                                                                self.colorspace, self.frame_ps)
+        print('Subscribed, start watching thread...')
+        self.watching_thread = Thread(target=self.watching, args=[self.subscriber_id])
+        self.watching_thread.start()
 
+    def stop_watching(self):
+        # unsubscribe from the module
+        print('Stop watching received, stopping watching thread...')
+        self.is_robot_watching = False
+        self.watching_thread.join()
+        print('Watching thread stopped. Unsubscribing...')
+        self.video_service.unsubscribe(self.subscriber_id)
+        print('Unsubscribed.')
+
+    def watching(self, subscriber_id):
         # start a loop until the stop signal is received
         while self.is_robot_watching:
-            naoImage = self.video_service.getImageRemote(subscriberID)
-            if naoImage is None:
-                print 'no image'
+            nao_image = self.video_service.getImageRemote(subscriber_id)
+            if nao_image is None:
+                print('no image')
             else:
-                #timestamp1 = time.time()
-                self.redis.mset({'image_stream': bytes(naoImage[6]), 'image_frame': str(self.frame)})
-                self.frame += 1
-                #timestamp2 = time.time()
-                #print 'set image ', naoImage[4], ' took: ', (timestamp2-timestamp1)
-            # try to consume 'stop watching', which sets self.is_robot_watching to False
-            self.update()
+                pipe = self.redis.pipeline()
+                pipe.set('image_stream', bytes(nao_image[6]))
+                pipe.publish('image_available', '')
+                pipe.execute()
 
-        # unsubscribe from the module
-        print '"stop watching" received, unsubscribing...'
-        self.video_service.unsubscribe(subscriberID)
+            time.sleep(self.polling_sleep)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -90,7 +130,7 @@ if __name__ == '__main__':
         print ('Cannot connect to Naoqi')
         sys.exit(1)
 
-    MyVideoProcessingModule = VideoProcessingModule(app = app, server = args.server, resolution = args.resolution, colorspace = args.colorspace, frame_ps = args.frame_ps)
+    MyVideoProcessingModule = VideoProcessingModule(app=app, server=args.server, resolution=args.resolution,
+                                                    colorspace=args.colorspace, frame_ps=args.frame_ps)
     app.session.registerService('VideoProcessingModule', MyVideoProcessingModule)
-
     MyVideoProcessingModule.run_forever()

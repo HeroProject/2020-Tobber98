@@ -5,17 +5,14 @@ import eis.iilang.Parameter;
 
 import java.util.List;
 
-public abstract class PlayAudioAction extends RobotAction {
-
-	protected String audioType;
+public class LoadAudioAction extends RobotAction {
+	public final static String NAME = "loadAudio";
 
 	/**
 	 * @param parameters A list of 1 identifier, the URL for the audio file(stream)
-	 * @param audioType type of audio to be played (raw or loaded)
 	 */
-	public PlayAudioAction(final List<Parameter> parameters, String audioType) {
+	public LoadAudioAction(final List<Parameter> parameters) {
 		super(parameters);
-		this.audioType = audioType;
 	}
 
 	@Override
@@ -25,11 +22,11 @@ public abstract class PlayAudioAction extends RobotAction {
 
 	@Override
 	public String getTopic() {
-		return "action_play_audio";
+		return "action_load_audio";
 	}
 
 	@Override
 	public String getData() {
-		return ((Identifier) getParameters().get(0)).getValue() + ";" + audioType;
+		return ((Identifier) getParameters().get(0)).getValue();
 	}
 }

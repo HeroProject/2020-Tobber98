@@ -1,14 +1,11 @@
 """
 Redis consumer, runs on the robot.
 """
-import signal
+from signal import signal, SIGINT, SIGTERM, pause
 import time
-from json import dumps
-from urllib import quote as urlquote
-
 import redis
-
 from tablet import Tablet
+
 
 class TabletConsumer(object):
     """Receives commands from Redis and executes them on the tablet"""
@@ -16,8 +13,8 @@ class TabletConsumer(object):
         self.tablet = Tablet(server)
 
         # Catch SIGINT/SIGTERM for cleanup purposes to stop threads
-        signal.signal(signal.SIGINT, self._exit_gracefully)
-        signal.signal(signal.SIGTERM, self._exit_gracefully)
+        signal(SIGINT, self.cleanup)
+        signal(SIGTERM, self.cleanup)
 
         # The Redis channels on which the tablet can receive commands
         channels = [
@@ -31,24 +28,13 @@ class TabletConsumer(object):
         # Create the consumer on those channels
         self.redis = redis.Redis(host=server, ssl=True, ssl_ca_certs='../cert.pem')
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
-        self.pubsub.subscribe(*channels)
+        self.pubsub.subscribe(**dict.fromkeys(channels, self.execute))
+        self.pubsub_thread = self.pubsub.run_in_thread(sleep_time=0.001)
 
         # Set the base URI for web pages
         self.webcontent_uri = 'https://' + server + ':8000/index.html'
 
-    # Handler should technically also have signum and frame as parameters, but we don't use that
-    def _exit_gracefully(self, *_):
-        print 'Exiting gracefully (ignore the runtime error from pubsub)'
-        self.tablet.stop_audio()
-        self.pubsub.close()
-
-    def update(self):
-        """Get a message and execute it"""
-        msg = self.pubsub.get_message()
-        if msg is not None:
-            self.execute(msg['channel'], msg['data'])
-        else:
-            time.sleep(0.001)
+        self.running = True
 
     def tablet_control(self, command):
         """Misc commands to control the tablet"""
@@ -74,8 +60,10 @@ class TabletConsumer(object):
 
     # pylint: disable=too-many-branches, too-many-statements
     # We need this many if statements to handle the different types of commands.
-    def execute(self, channel, content):
+    def execute(self, message):
         """Execute a single command. Format is documented on Confluence."""
+        channel = message['channel']
+        content = message['data']
         print '[{}] {}'.format(channel, content)
 
         if channel == 'tablet_control':
@@ -98,12 +86,21 @@ class TabletConsumer(object):
 
     def run_forever(self):
         """Receive commands and execute them in 1 millisecond intervals"""
-        try:
-            while True:
-                self.update()
-        except KeyboardInterrupt:
-            print 'Interrupted'
-            self._exit_gracefully()
+        while self.running:
+            pause()
+
+    def cleanup(self, signum, frame):
+        if self.running:
+            self.running = False
+            print('Trying to exit gracefully...')
+            try:
+                self.tablet.stop_audio()
+                self.pubsub_thread.stop()
+                self.redis.close()
+                print('Graceful exit was successful.')
+            except redis.RedisError as err:
+                print('A graceful exit has failed due to: ' + err.message)
+
 
 if __name__ == '__main__':
     import argparse
@@ -114,5 +111,8 @@ if __name__ == '__main__':
 
     print 'Receiving commands...'
 
-    CONSUMER = TabletConsumer(ARGS.server)
-    CONSUMER.run_forever()
+    try:
+        CONSUMER = TabletConsumer(ARGS.server)
+        CONSUMER.run_forever()
+    except RuntimeError:
+        print 'No tablet available.'

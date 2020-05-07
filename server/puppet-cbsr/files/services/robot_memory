@@ -1,0 +1,9 @@
+[Unit]
+Description=CBSR Robot Memory
+After=multi-user.target
+
+[Service]
+ExecStart=/opt/processing/robot_memory/run_memory.sh > /var/log/cbsr_robot_memory.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

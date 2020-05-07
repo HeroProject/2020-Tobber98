@@ -53,13 +53,11 @@ class cbsr::install inherits cbsr {
   exec { 'dnf-enable':
     path        =>  $path,
     command     =>  'dnf config-manager --enable remi remi-test remi-modular-test',
-    timeout     =>  0,
     require     =>  Package['remi-release']
   }
   exec { 'dnf-modules':
     path        =>  $path,
-    command     =>  'dnf -y module reset php redis && dnf -y module enable php:remi-7.4 redis:remi-6.0',
-    timeout     =>  0,
+    command     =>  'dnf -y module reset php redis',
     require     =>  Exec['dnf-enable']
   }
   exec { 'dnf-update':
@@ -222,5 +220,11 @@ class cbsr::install inherits cbsr {
     ensure      =>  file,
     source      =>  'puppet:///modules/cbsr/services/stream_video',
     require     =>  Package['java-1.8.0-openjdk-devel']
+  }
+  file { '/etc/systemd/system/robot_memory.service':
+    notify      =>  Service['robot_memory'],
+    ensure      =>  file,
+    source      =>  'puppet:///modules/cbsr/services/robot_memory',
+    require     =>  Exec['pip-install']
   }
 }

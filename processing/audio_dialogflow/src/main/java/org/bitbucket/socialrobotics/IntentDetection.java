@@ -114,6 +114,7 @@ public class IntentDetection {
 
 	public void run() throws Exception {
 		try (final Jedis redis = connect()) {
+			redis.ping();
 			System.out.println("Subscribing to " + this.server);
 			redis.subscribe(new JedisPubSub() {
 				private RedisAudioIterator audio;

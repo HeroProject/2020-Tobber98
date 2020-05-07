@@ -13,7 +13,6 @@ public class VideoServer extends Thread {
 	private final static String nl = "\r\n";
 	private final ServerSocket serverSocket;
 	private Socket socket;
-	private volatile boolean connected = false;
 
 	VideoServer() throws Exception {
 		this.serverSocket = new ServerSocket(8001);
@@ -25,13 +24,12 @@ public class VideoServer extends Thread {
 			try {
 				System.out.println("Waiting for connection...");
 				VideoServer.this.socket = VideoServer.this.serverSocket.accept();
-				VideoServer.this.connected = true;
 				System.out.println("Connected! " + VideoServer.this.socket.getRemoteSocketAddress());
 
 				writeHeader();
 
-				while (VideoServer.this.connected) {
-					Thread.sleep(1);
+				synchronized (this) {
+					wait();
 				}
 				if (VideoServer.this.socket != null) {
 					VideoServer.this.socket.close();
@@ -50,28 +48,31 @@ public class VideoServer extends Thread {
 	}
 
 	public void pushImage(final BufferedImage img) throws Exception {
-		if (this.connected) {
-			try {
-				final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				ImageIO.write(img, "jpg", baos);
+		if (this.socket == null) {
+			return;
+		}
+		try {
+			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ImageIO.write(img, "jpg", baos);
 
-				final StringBuilder start = new StringBuilder();
-				start.append("--").append(boundary).append(nl).append("Content-Type: image/jpeg").append(nl)
-						.append("Content-Length: ").append(baos.size()).append(nl).append(nl);
+			final StringBuilder start = new StringBuilder();
+			start.append("--").append(boundary).append(nl).append("Content-Type: image/jpeg").append(nl)
+					.append("Content-Length: ").append(baos.size()).append(nl).append(nl);
 
-				final OutputStream outputStream = this.socket.getOutputStream();
-				outputStream.write(start.toString().getBytes());
-				baos.writeTo(outputStream);
-				outputStream.write((nl + nl).getBytes());
-			} catch (final Exception e) {
-				stopStreamingServer();
-				throw e;
-			}
+			final OutputStream outputStream = this.socket.getOutputStream();
+			outputStream.write(start.toString().getBytes());
+			baos.writeTo(outputStream);
+			outputStream.write((nl + nl).getBytes());
+		} catch (final Exception e) {
+			stopStreamingServer();
+			throw e;
 		}
 	}
 
 	public void stopStreamingServer() {
-		this.connected = false;
+		synchronized (this) {
+			notifyAll();
+		}
 		try {
 			this.serverSocket.close();
 		} catch (final Exception ignore) {

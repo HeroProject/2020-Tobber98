@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -238,6 +240,15 @@ public class CBSRenvironment extends EIDefaultImpl {
 	}
 
 	/**
+	 * Queues the memory event information as a percept to be received by the agent.
+	 *
+	 * @param memoryEvent The event name
+	 */
+	public void addMemoryEvent(final String memoryEvent) {
+		this.perceptQueue.add(new Percept("memoryEvent", new Identifier(memoryEvent)));
+	}
+
+	/**
 	 * Queues the answer (to a posed question) as a percept to be received by the
 	 * agent.
 	 *
@@ -306,6 +317,16 @@ public class CBSRenvironment extends EIDefaultImpl {
 	}
 
 	/**
+	 * Queues the id of a loaded audio file as a percept to be received by the
+	 * agent.
+	 *
+	 * @param audioID The id of the loaded audio.
+	 */
+	public void addLoadedAudioID(final String audioID) {
+		this.perceptQueue.add(new Percept("loadedAudioID", new Identifier(audioID)));
+	}
+
+	/**
 	 * Queues the file name of a picture as a percept to be received by the agent.
 	 *
 	 * @param filename The filename (including extension) of the pictre.
@@ -322,6 +343,21 @@ public class CBSRenvironment extends EIDefaultImpl {
 	 */
 	public void addSpeechText(final String text) {
 		this.perceptQueue.add(new Percept("speechText", new Identifier(text)));
+	}
+
+	/**
+	 * Queues the url and text as a percept to be received by the agent.
+	 *
+	 * @param key  key of memory data packet
+	 * @param value value of memory data packet
+	 */
+	public void addMemoryData(final String key, final String value) {
+		try {
+			Number valueNumber = NumberFormat.getInstance().parse(value);
+			this.perceptQueue.add(new Percept("memoryData", new Identifier(key), new Numeral(valueNumber)));
+		} catch (ParseException e) {
+			this.perceptQueue.add(new Percept("memoryData", new Identifier(key), new Identifier(value)));
+		}
 	}
 
 	/**

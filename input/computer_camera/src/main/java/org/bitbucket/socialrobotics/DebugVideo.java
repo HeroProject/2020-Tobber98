@@ -36,7 +36,7 @@ public class DebugVideo extends JFrame implements ImageSupplier {
 	private static final long serialVersionUID = 1L;
 	private static final int width = 640, height = 480;
 	private static final byte[] videotopic = "image_stream".getBytes();
-	private static final String frametopic = "image_frame";
+	private static final String frametopic = "image_available";
 	private final String server;
 	private final boolean ssl;
 	private final Webcam webcam;
@@ -45,7 +45,6 @@ public class DebugVideo extends JFrame implements ImageSupplier {
 	private final JLabel status;
 	private boolean openWindow;
 	private byte[] current = new byte[0];
-	private long frame = 0;
 
 	public static void main(final String... args) {
 		final Preferences prefs = Preferences.userRoot().node("cbsr");
@@ -167,7 +166,7 @@ public class DebugVideo extends JFrame implements ImageSupplier {
 				buffer.get(img);
 				final Pipeline pipe = this.redis.pipelined();
 				pipe.set(videotopic, img);
-				pipe.set(frametopic, Long.toString(DebugVideo.this.frame++));
+				pipe.publish(frametopic, "");
 				pipe.sync();
 				DebugVideo.this.current = img;
 			}

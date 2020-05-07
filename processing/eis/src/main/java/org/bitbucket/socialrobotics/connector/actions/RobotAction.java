@@ -50,8 +50,14 @@ public abstract class RobotAction {
 			return new StartWatchingAction();
 		case StopWatchingAction.NAME:
 			return new StopWatchingAction();
-		case PlayAudioAction.NAME:
-			return new PlayAudioAction(parameters);
+		case LoadAudioAction.NAME:
+			return new LoadAudioAction(parameters);
+		case PlayRawAudioAction.NAME:
+			return new PlayRawAudioAction(parameters);
+		case PlayLoadedAudioAction.NAME:
+			return new PlayLoadedAudioAction(parameters);
+		case ClearLoadedAudioAction.NAME:
+			return new ClearLoadedAudioAction();
 		case SetLanguageAction.NAME:
 			return new SetLanguageAction(parameters);
 		case SetSpeechParamAction.NAME:
@@ -62,6 +68,14 @@ public abstract class RobotAction {
 			return new TurnLeftAction();
 		case TurnRightAction.NAME:
 			return new TurnRightAction();
+		case WakeUpAction.NAME:
+			return new WakeUpAction();
+		case RestAction.NAME:
+			return new RestAction();
+		case EnableBreathingAction.NAME:
+			return new EnableBreathingAction(parameters);
+		case DisableBreathingAction.NAME:
+			return new DisableBreathingAction(parameters);
 		// TABLET ACTIONS
 		case TabletOpenAction.NAME:
 			return new TabletOpenAction();
@@ -75,6 +89,15 @@ public abstract class RobotAction {
 			return new TabletShowWebpageAction(parameters);
 		case TabletRenderAction.NAME:
 			return new TabletRenderAction(parameters);
+		// MEMORY ACTIONS
+		case GetUserSession.NAME:
+			return new GetUserSession(parameters);
+		case AddMemoryEntryAction.NAME:
+			return new AddMemoryEntryAction(parameters);
+		case GetUserDataAction.NAME:
+			return new GetUserDataAction(parameters);
+		case SetUserDataAction.NAME:
+			return new SetUserDataAction(parameters);
 		// OTHER
 		case WebRequestAction.NAME:
 			return new WebRequestAction(parameters);

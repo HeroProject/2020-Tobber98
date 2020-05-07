@@ -15,16 +15,14 @@ import java.util.prefs.Preferences;
 import javax.swing.JOptionPane;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.Protocol;
 
 public class StreamVideo {
 	private static final byte[] videotopic = "image_stream".getBytes();
-	private static final String sizetopic = "image_size";
-	private static final String frametopic = "image_frame";
 	private final String server;
 	private final boolean ssl;
 	private final VideoServer stream;
-	private int frame = -1;
 
 	public static void main(final String... args) {
 		final Preferences prefs = Preferences.userRoot().node("cbsr");
@@ -38,6 +36,7 @@ public class StreamVideo {
 
 		try {
 			final StreamVideo stream = new StreamVideo(server, ssl);
+			stream.listen();
 			stream.run();
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -51,36 +50,47 @@ public class StreamVideo {
 		this.stream = new VideoServer();
 	}
 
+	public void listen() {
+		new Thread() {
+			@Override
+			public void run() {
+				try (final Jedis redis = new Jedis(StreamVideo.this.server, Protocol.DEFAULT_PORT,
+						StreamVideo.this.ssl)) {
+					redis.ping();
+					System.out.println("Subscribing to " + StreamVideo.this.server);
+					redis.subscribe(new JedisPubSub() {
+						@Override
+						public void onMessage(final String channel, final String message) {
+							synchronized (StreamVideo.this) {
+								StreamVideo.this.notifyAll();
+							}
+						}
+					}, "image_available");
+				}
+			}
+		}.start();
+	}
+
 	public void run() {
 		System.out.println("Connecting to " + this.server + "...");
 		try (final Jedis redis = new Jedis(this.server, Protocol.DEFAULT_PORT, this.ssl)) {
-			String imgsize = null;
-			System.out.println("Fetching image size...");
-			while (imgsize == null) {
-				imgsize = redis.get(sizetopic);
-			}
-			final int width = Integer.parseInt(imgsize.substring(0, 3));
-			final int height = Integer.parseInt(imgsize.substring(4, imgsize.length()));
-			System.out.println("Got: " + width + "x" + height);
-
 			this.stream.start();
 
+			int width = 0, height = 0;
 			while (true) {
-				final String frame = redis.get(frametopic);
-				final int frameno = (frame == null) ? -1 : Integer.parseInt(frame);
-				if (frameno == 0 || frameno > this.frame) {
-					try {
-						final byte[] img = redis.get(videotopic);
-						this.stream.pushImage(get(img, width, height));
-						this.frame = frameno;
-					} catch (final Exception e) {
-						e.printStackTrace(); // FIXME
+				try {
+					synchronized (this) {
+						wait(); // until imageAvailable
 					}
-				} else {
-					try {
-						Thread.sleep(1);
-					} catch (final InterruptedException ignore) {
+					if (width == 0 || height == 0) {
+						final String imgsize = redis.get("image_size");
+						width = Integer.parseInt(imgsize.substring(0, 3));
+						height = Integer.parseInt(imgsize.substring(4, imgsize.length()));
 					}
+					final byte[] img = redis.get(videotopic);
+					this.stream.pushImage(get(img, width, height));
+				} catch (final Exception e) {
+					e.printStackTrace(); // FIXME
 				}
 			}
 		}

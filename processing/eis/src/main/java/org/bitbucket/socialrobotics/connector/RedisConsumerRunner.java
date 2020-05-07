@@ -8,7 +8,8 @@ import redis.clients.jedis.JedisPubSub;
 class RedisConsumerRunner extends RedisRunner {
 	private static final String[] topics = new String[] { "events_robot", "tablet_connection", "tablet_answer",
 			"detected_person", "recognised_face", "webrequest_response", "audio_language", "text_speech",
-			"audio_intent", "audio_newfile", "picture_newfile", "detected_emotion" };
+			"audio_intent", "audio_newfile", "robot_audio_loaded", "picture_newfile", "detected_emotion",
+			"events_memory", "memory_data" };
 
 	public RedisConsumerRunner(final CBSRenvironment parent, final String server, final boolean ssl) {
 		super(parent, server, ssl);
@@ -56,11 +57,25 @@ class RedisConsumerRunner extends RedisRunner {
 						case "audio_newfile":
 							RedisConsumerRunner.this.parent.addAudioRecording(message);
 							break;
+						case "robot_audio_loaded":
+							RedisConsumerRunner.this.parent.addLoadedAudioID(message);
+							break;
 						case "picture_newfile":
 							RedisConsumerRunner.this.parent.addPicture(message);
 							break;
 						case "detected_emotion":
 							RedisConsumerRunner.this.parent.addDetectedEmotion(message);
+							break;
+						case "events_memory":
+							RedisConsumerRunner.this.parent.addMemoryEvent(message);
+							break;
+						case "memory_data":
+							final String[] keyvalue = message.split(";");
+							if (keyvalue.length == 2) {
+								RedisConsumerRunner.this.parent.addMemoryData(keyvalue[0], keyvalue[1]);
+							} else {
+								System.out.println("Mismatch in memory_data format. Format should be key;value");
+							}
 							break;
 						}
 					}

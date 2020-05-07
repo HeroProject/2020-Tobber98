@@ -59,6 +59,7 @@ public class WebServer {
 
 	public void listen() throws Exception {
 		try (final Jedis redis = connect()) {
+			redis.ping();
 			System.out.println("Subscribing to " + this.redisServer);
 			redis.subscribe(new JedisPubSub() {
 				@Override
