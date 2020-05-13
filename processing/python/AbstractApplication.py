@@ -52,7 +52,7 @@ class AbstractApplication(object):
 
     def __send(self, channel, data):
         self.__redis.publish(channel, data)
-        #print("sent " + data + " on " + channel)
+        # print("sent " + data + " on " + channel)
 
     def stop(self):
         """Stop listening to incoming events (which is done in a thread) so the Python application can close."""

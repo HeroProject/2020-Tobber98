@@ -15,7 +15,7 @@ public class VideoServer extends Thread {
 	private Socket socket;
 
 	VideoServer() throws Exception {
-		this.serverSocket = new ServerSocket(8001);
+		this.serverSocket = new ServerSocket(8002);
 	}
 
 	@Override

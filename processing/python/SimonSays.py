@@ -1,14 +1,14 @@
-import AbstractApplication as Base
+# import AbstractApplication as Base
+import abstract_connector as Base
 from threading import Semaphore
 import random
 import time
 
 
-class SimonSays(Base.AbstractApplication):
+class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
     def __init__(self):
-        super(SimonSays, self).__init__(serverIP='192.168.0.200')
+        super(SimonSays, self).__init__(server_ip='192.168.0.200', robot='nao')
         self.first_time = False
-
 
         self.score = 0
         self.speedup = 0
@@ -29,8 +29,16 @@ class SimonSays(Base.AbstractApplication):
 
         self.move_to_make = None
 
-        self.setDialogflowKey('ronald-ywcxbh-a2ca41d812bb.json')
-        self.setDialogflowAgent('ronald-ywcxbh')
+        self.set_dialogflow_key('ronald-ywcxbh-a2ca41d812bb.json')
+        self.set_dialogflow_agent('ronald-ywcxbh')
+
+        # Created locks
+        self.turnLock = Semaphore(0)
+        self.langLock = Semaphore(0)
+        self.speechLock = Semaphore(0)
+        self.movementLock = Semaphore(0)
+        self.buttonLock = Semaphore(0)
+        
 
     # Generate rondom float between min and max values given
     def generate_random(self, min, max):
@@ -38,6 +46,7 @@ class SimonSays(Base.AbstractApplication):
             self.speedup = self.score * 0.05
         return round(abs(random.uniform(min - self.speedup, max - self.speedup)), 2)
 
+    # Converts the retuns of the physical button presses to the ingame names
     def physical_to_ingame(self, button):
         if button == "RightBumperPressed":
             return "br"
@@ -50,6 +59,7 @@ class SimonSays(Base.AbstractApplication):
 
     # Generate single turn of the game
     def create_mole(self):
+        self.current_button = None
         time.sleep(self.generate_random(1.5, 2.5))
         self.current_button = self.ingame_buttons[random.randrange(0, 4)]
 
@@ -69,25 +79,25 @@ class SimonSays(Base.AbstractApplication):
 
         t = self.generate_random(3, 6)
         self.can_press = True
-        self.setLeds({'name': 'rotate', 'colour': 0x0033FF33,
+        self.set_leds({'name': 'rotate', 'colour': 0x0033FF33,
                       'rotation_time': 0.5, 'time': t})
         self.buttonLock.acquire(timeout=t)
         if self.current_button == self.physical_to_ingame(self.button_pressed):
             return True
         return False
 
+    # Subroutine to make a guess of the word that is said and perform a motion
     def guess(self):
         self.say("Ik luister.")
         self.speechLock.acquire()
-        self.turnLock = Semaphore(0)
-        self.setAudioContext("make_move")
-        self.setAudioHints("linkervoet", "rechtervoet",
+        self.set_audio_context("make_move")
+        self.set_audio_hints("linkervoet", "rechtervoet",
                            "linkerhand", "rechterhand", "fout")
-        self.startListening()
-        self.setLeds({'name': 'rotate', 'colour': 0x0033FF33,
+        self.start_listening()
+        self.set_leds({'name': 'rotate', 'colour': 0x0033FF33,
                       'rotation_time': 1, 'time': 5.0})
         self.turnLock.acquire(timeout=5)
-        self.stopListening()
+        self.stop_listening()
 
         if self.move_to_make == "fout":
             self.say("Ah jammer, nu mag jij weer!")
@@ -96,19 +106,19 @@ class SimonSays(Base.AbstractApplication):
             return False
 
         elif self.move_to_make == "linkervoet":
-            self.doGesture("simonsayshost-a4203c/move-left-foot")
+            self.do_gesture("simonsayshost-a4203c/move-left-foot")
             self.movementLock.acquire()
 
         elif self.move_to_make == "rechtervoet":
-            self.doGesture("simonsayshost-a4203c/move-right-foot")
+            self.do_gesture("simonsayshost-a4203c/move-right-foot")
             self.movementLock.acquire()
 
         elif self.move_to_make == "linkerhand":
-            self.doGesture("simonsayshost-a4203c/move-left-arm")
+            self.do_gesture("simonsayshost-a4203c/move-left-arm")
             self.movementLock.acquire()
 
         elif self.move_to_make == "rechterhand":
-            self.doGesture("simonsayshost-a4203c/move-right-arm")
+            self.do_gesture("simonsayshost-a4203c/move-right-arm")
             self.movementLock.acquire()
 
         else:
@@ -118,31 +128,46 @@ class SimonSays(Base.AbstractApplication):
         # Listen if correct?
         return True
 
+    # Explanation of the game where the robot shows what the player is supposed to do
     def explain_game(self):
-        self.sayAnimated("Hey, leuk dat je *spelnaam* met mij wil spelen. \
-            Ik zal het proberen uit te leggen. Er zijn twee manieren om het te spelen. \
-            De eerste manier is dat ik zeg wat je aan moet tikken en de tweede manier is dat jij zegt wat ik moet bewegen. \
-            Mijn ogen zullen draaien als je kunt drukken op mijn knoppen.")
+        self.say_animated("Hé, leuk dat je *spelnaam* met mij wil spelen. \
+            Ik zal het proberen uit te leggen. Er zijn twee manieren om het spel te spelen. \
+            De eerste manier is dat ik zeg wat jij aan moet tikken en de tweede manier is dat jij zegt wat ik moet bewegen.")
+        self.speechLock.acquire()
+
+        self.set_leds({"name": "rotate", "colour": 0x0033FF33,
+                      "rotation_time": 1, "time": 4})
+        self.say("Mijn ogen zullen draaien, zoals ze nu doen, als je kunt drukken op mijn knoppen. \
+                Hetzelfde geldt voor wanneer ik luister terwijl jij spelleider bent. \
+                Laten we beginnen met een oefenronde. Ik zeg iets en jij moet op de knop drukken.")
+        self.speechLock.acquire()
+
+        self.do_gesture("simonsayshost-a4203c/sit-down")
+        self.movementLock.acquire()
+        while not self.create_mole():
+            if self.can_press:
+                self.say("Ah, je was niet snel genoeg. We proberen het nog een keer.")
+                self.speechLock.acquire()
+                self.can_press = False
+            else:
+                self.say("Ah, dat was de verkeerde knop. We proberen het nog een keer.")
+                self.speechLock.acquire()
+        self.say("Jippie, dat is precies zoals het moet.")
         self.speechLock.acquire()
 
     # Start of the game
     def start(self):
         # Set language to Dutch
-        self.langLock = Semaphore(0)
-        self.setLanguage('nl-NL')
+        self.set_language('nl-NL')
         self.langLock.acquire()
 
-        self.speechLock = Semaphore(0)
         if self.first_time:
             self.explain_game()
-
 
         self.playing = True
 
         # Put robot in right position for host
-        self.movementLock = Semaphore(0)
-        self.setIdle()
-        self.doGesture("simonsayshost-a4203c/sit-down")
+        self.do_gesture("simonsayshost-a4203c/sit-down")
         self.movementLock.acquire()
 
         # Start of game message
@@ -150,7 +175,6 @@ class SimonSays(Base.AbstractApplication):
         self.speechLock.acquire()
 
         # Call button and wait for response
-        self.buttonLock = Semaphore(0)
         while(self.playing):
             if self.host:
                 if self.create_mole():
@@ -176,8 +200,9 @@ class SimonSays(Base.AbstractApplication):
         self.score = 0
 
     # On return of an event perform this function
-    def onRobotEvent(self, event):
+    def on_robot_event(self, event):
         if event == "LanguageChanged":
+            print("test")
             self.langLock.release()
 
         if event == "TextDone":
@@ -187,13 +212,14 @@ class SimonSays(Base.AbstractApplication):
             if self.can_press:
                 print("... {}".format(event))
                 self.can_press = False
-                self.setLeds({'name': 'fade', 'group': 'FaceLeds',
+                self.set_leds({'name': 'fade', 'group': 'FaceLeds',
                               'colour': 0x000011FF, 'time': .05})
                 self.button_pressed = event
                 self.buttonLock.release()
 
         if event in self.physical_buttons_released:
-            self.setLeds({'name': 'fade', 'group': 'FaceLeds', 'colour': 0x00FFFFFF, 'time': .05})
+            self.set_leds({'name': 'fade', 'group': 'FaceLeds',
+                          'colour': 0x00FFFFFF, 'time': .05})
 
         if event in ["FrontTactilTouched", "MiddleTactilTouched", "RearTactilTouched"]:
             self.playing = False
@@ -203,7 +229,7 @@ class SimonSays(Base.AbstractApplication):
 
     # When there is an audio intent found that corresponds with the current context,
     # perform a certain action.
-    def onAudioIntent(self, *args, intentName):
+    def on_audio_intent(self, *args, intentName):
         print("Intent: ", intentName)
         if intentName == 'make_move' and len(args) > 0:
             print(args[0])

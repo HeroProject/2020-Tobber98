@@ -57,6 +57,10 @@ class RobotConsumer:
         self.redis.publish('events_robot', value)
 
     def execute(self, message):
+        t = Thread(target=self.process_message, args=(message,))
+        t.start()
+
+    def process_message(self, message):
         channel = message['channel']
         data = message['data']
         print channel + ': ' + data

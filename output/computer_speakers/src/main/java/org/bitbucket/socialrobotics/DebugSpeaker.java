@@ -106,9 +106,10 @@ public class DebugSpeaker extends JFrame {
 								say(message);
 								break;
 							case "action_play_audio":
-								System.out.println("Playing: " + message);
+								final String[] split = message.split(";");
+								System.out.println("Playing: " + split[0]);
 								final String dir = DebugSpeaker.this.webserver + "/html/audio";
-								final File audiofile = new File(dir + "/" + message);
+								final File audiofile = new File(dir + "/" + split[0]);
 								playAudio(audiofile);
 								break;
 							// all below actions are stub that will produce the correct events,

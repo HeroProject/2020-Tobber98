@@ -29,7 +29,6 @@ class EmotionDetectionService:
         self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe(**{'action_video': self.execute,
                                  'image_available': self.set_image_available})
-        self.pubsub_thread = self.pubsub.run_in_thread(sleep_time=0.001)
 
         # Register cleanup handlers
         signal(SIGTERM, self.cleanup)
@@ -64,6 +63,7 @@ class EmotionDetectionService:
 
         # Service is running
         self.running = True
+        self.pubsub_thread = self.pubsub.run_in_thread(sleep_time=0.001)
 
     def execute(self, message):
         data = message['data']
@@ -151,7 +151,6 @@ class EmotionDetectionService:
         if not self.is_image_available:
             self.is_image_available = True
             self.image_available_flag.set()
-
 
     def run(self):
         while self.running:

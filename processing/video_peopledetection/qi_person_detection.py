@@ -110,7 +110,6 @@ class PeopleDetectionService:
             self.is_image_available = True
             self.image_available_flag.set()
 
-
     def take_picture(self, message):
         self.save_image = True
 
