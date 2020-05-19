@@ -8,6 +8,7 @@
         <BehaviorDescription name="behavior" src="move-left-foot" xar="behavior.xar" />
         <BehaviorDescription name="behavior" src="move-right-foot" xar="behavior.xar" />
         <BehaviorDescription name="behavior" src="missed-move-to-make" xar="behavior.xar" />
+        <BehaviorDescription name="behavior" src="follow-face" xar="behavior.xar" />
     </BehaviorDescriptions>
     <Dialogs />
     <Resources />

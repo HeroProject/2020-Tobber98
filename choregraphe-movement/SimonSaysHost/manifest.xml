@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<package installOnlyAtStartup="false" version="0.0.1" uuid="simonsayshost-a4203c">
+<package uuid="simonsayshost-a4203c" installOnlyAtStartup="false" version="0.0.1">
  <names>
   <name lang="en_US">SimonSaysHost</name>
  </names>
@@ -19,25 +19,25 @@
   </behaviorContent>
   <behaviorContent path="move-right-arm">
    <nature>interactive</nature>
-   <autonomous/>
    <permissions/>
   </behaviorContent>
   <behaviorContent path="move-left-arm">
    <nature>interactive</nature>
-   <autonomous/>
    <permissions/>
   </behaviorContent>
   <behaviorContent path="move-left-foot">
    <nature>interactive</nature>
-   <autonomous/>
    <permissions/>
   </behaviorContent>
   <behaviorContent path="move-right-foot">
    <nature>interactive</nature>
-   <autonomous/>
    <permissions/>
   </behaviorContent>
   <behaviorContent path="missed-move-to-make">
+   <nature>interactive</nature>
+   <permissions/>
+  </behaviorContent>
+  <behaviorContent path="follow-face">
    <nature>interactive</nature>
    <permissions/>
   </behaviorContent>

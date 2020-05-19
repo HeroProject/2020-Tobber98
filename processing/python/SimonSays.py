@@ -38,6 +38,7 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         self.speechLock = Semaphore(0)
         self.movementLock = Semaphore(0)
         self.buttonLock = Semaphore(0)
+        self.faceLock = Semaphore(0)
         
 
     # Generate rondom float between min and max values given
@@ -88,6 +89,7 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
 
     # Subroutine to make a guess of the word that is said and perform a motion
     def guess(self):
+        self.button_pressed = None
         self.say("Ik luister.")
         self.speechLock.acquire()
         self.set_audio_context("make_move")
@@ -99,7 +101,7 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         self.turnLock.acquire(timeout=5)
         self.stop_listening()
 
-        if self.move_to_make == "fout":
+        if self.move_to_make == "fout" or self.button_pressed in ["FrontTactilTouched", "MiddleTactilTouched", "RearTactilTouched"]:
             self.say("Ah jammer, nu mag jij weer!")
             self.speechLock.acquire()
             self.host = True
@@ -169,6 +171,7 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         # Put robot in right position for host
         self.do_gesture("simonsayshost-a4203c/sit-down")
         self.movementLock.acquire()
+        self.follow_face(True)
 
         # Start of game message
         self.say("Laten we beginnen. Druk op mijn hoofd om the stoppen!")
@@ -198,6 +201,8 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
             self.say("Oké, we stoppen.")
         self.speechLock.acquire()
         self.score = 0
+        self.follow_face(False)
+        self.faceLock.acquire()
 
     # On return of an event perform this function
     def on_robot_event(self, event):
@@ -226,6 +231,9 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
 
         if event == "GestureDone":
             self.movementLock.release()
+
+        if event == "StopFollowFaceDone":
+            self.faceLock.release()
 
     # When there is an audio intent found that corresponds with the current context,
     # perform a certain action.

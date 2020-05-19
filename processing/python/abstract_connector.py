@@ -181,6 +181,9 @@ class AbstractSICConnector(object):
         A GestureStarted event will be sent when the gesture starts and a GestureDone event when it is finished."""
         self.__send('action_gesture', gesture)
 
+    def follow_face(self, value):
+        self.__send('action_followface', int(value))
+
     def play_audio(self, audio_file: str):
         """Plays the audio file (in the webserver's html/audio directory) on the robot's speakers.
         A PlayAudioStarted event will be sent when the audio starts and a PlayAudioDone event after it is finished.

@@ -52,6 +52,8 @@ class RobotConsumer:
         signal(SIGINT, self.cleanup)
 
         self.running = True
+        self.followed_face = None
+        self.rotate_eyes_id = None
 
     def produce(self, value):
         self.redis.publish('events_robot', value)
@@ -76,6 +78,8 @@ class RobotConsumer:
             self.produce('GestureStarted')
             self.animation.run(data)
             self.produce('GestureDone')
+        elif channel == 'action_followface':
+            self.follow_face(data)
         elif channel == 'action_eyecolour':
             self.produce('EyeColourStarted')
             self.change_eye_colour(data)
@@ -167,6 +171,22 @@ class RobotConsumer:
         else:
             print 'Unknown command'
 
+    def follow_face(self, value):
+        print("Test")
+        print value, type(value)
+        if int(value) == 1:
+            print "followed_face is: ", self.followed_face
+            if not self.followed_face:
+                self.produce("FollowFaceStarted")
+                self.followed_face = self.animation.run("simonsayshost-a4203c/follow-face", _async=True)
+                self.produce("FollowFaceDone")
+        else:
+            if self.followed_face:
+                self.produce("StopFollowFaceStarted")
+                self.followed_face.cancel()
+                self.followed_face = None
+                self.produce("StopFollowFaceDone")
+
     def change_eye_colour(self, value):
         self.leds.off('FaceLeds')
         if value == 'rainbow':    # make the eye colours rotate
@@ -206,7 +226,8 @@ class RobotConsumer:
         led_dict = json.loads(value)
         
         if led_dict['name'] == 'off':
-            self.leds.stop(self.rotate_eyes_id)
+            if self.rotate_eyes_id:
+                self.leds.stop(self.rotate_eyes_id)
             self.leds.off(str(led_dict['group']))
         elif led_dict['name'] == 'fade':
             self.leds.stop(self.rotate_eyes_id)
@@ -256,5 +277,5 @@ if __name__ == '__main__':
                                                                'action_play_audio', 'action_load_audio', 'action_clear_audio',
                                                                'action_speech_param', 'action_turn',
                                                                'action_turn_small', 'action_wakeup', 'action_rest',
-                                                               'action_set_breathing', 'action_change_leds'])
+                                                               'action_set_breathing', 'action_change_leds', 'action_followface'])
     robot_consumer.run_forever()

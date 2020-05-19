@@ -447,7 +447,7 @@
               <Output name="sittingAlready" type="1" type_size="1" nature="2" inner="0" tooltip="" id="5" />
               <Output name="hasToSitDown" type="1" type_size="1" nature="2" inner="0" tooltip="" id="6" />
             </Box>
-            <Box name="autonomousLifeOff" id="5" localization="8" tooltip="Turn off autonomous life if on" x="82" y="44">
+            <Box name="autonomousLifeOff" id="5" localization="8" tooltip="Turn off autonomous life if on" x="128" y="303">
               <bitmap>media/images/box/box-python-script.png</bitmap>
               <script language="4">
                 <content>
