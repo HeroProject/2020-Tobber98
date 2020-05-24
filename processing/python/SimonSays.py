@@ -8,29 +8,38 @@ import time
 class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
     def __init__(self):
         super(SimonSays, self).__init__(server_ip='192.168.0.200', robot='nao')
-        self.first_time = False
+        
+        # Dialogflow data
+        self.set_dialogflow_key('ronald-ywcxbh-a2ca41d812bb.json')
+        self.set_dialogflow_agent('ronald-ywcxbh')
 
+        # Booleans to determine who is host and if explanation is needed
+        self.first_time = False
+        self.host = True
+
+        # Elements of the game that need to be tracked
         self.score = 0
         self.speedup = 0
-        self.host = True
         self.can_press = False
+        self.current_button = None
+        self.button_pressed = None
+        self.move_to_make = None
 
-        self.ingame_buttons = ["bl", "br", "tl", "tr"]
-        self.physical_buttons_pressed = ["RightBumperPressed", "LeftBumperPressed", "HandRightBackPressed"
+        # Available buttons to press and release in game
+        self.ingame_buttons = {"bl": "Rechtervoet", "br": "Linkervoet", "tl": "Rechterhand", "tr": "Linkerhand"}
+        self.button_dict = {"RightBumperPressed": "br", "LeftBumperPressed": "bl", "HandRightBackPressed": "tr",
+                                         "HandRightLeftTouched": "tr", "HandRightRightTouched": "tr", "HandLeftLeftTouched": "tl",
+                                         "HandLeftRightTouched": "tl", "HandLeftBackPressed": "tl"}
+
+        self.button_dict = ["RightBumperPressed", "LeftBumperPressed", "HandRightBackPressed"
                                          "HandRightLeftTouched", "HandRightRightTouched", "HandLeftLeftTouched",
                                          "HandLeftRightTouched", "HandLeftBackPressed"]
-
         self.physical_buttons_released = ["RightBumperReleased", "LeftBumperReleased", "HandRightBackReleased",
                                           "HandRightLeftReleased", "HandRightRightReleased", "HandLeftLeftReleased",
                                           "HandLeftRightReleased", "HandLeftBackReleased"]
 
-        self.current_button = None
-        self.button_pressed = None
-
-        self.move_to_make = None
-
-        self.set_dialogflow_key('ronald-ywcxbh-a2ca41d812bb.json')
-        self.set_dialogflow_agent('ronald-ywcxbh')
+        self.speech_dict = {"linkervoet": "move-left-foot", "rechtervoet": "move-right-foot",
+                        "linkerhand": "move-left-arm", "rechterhand": "move-right-arm"}
 
         # Created locks
         self.turnLock = Semaphore(0)
@@ -47,35 +56,37 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
             self.speedup = self.score * 0.05
         return round(abs(random.uniform(min - self.speedup, max - self.speedup)), 2)
 
-    # Converts the retuns of the physical button presses to the ingame names
-    def physical_to_ingame(self, button):
-        if button == "RightBumperPressed":
-            return "br"
-        elif button == "LeftBumperPressed":
-            return "bl"
-        elif button in ("HandRightBackTouched", "HandRightLeftTouched", "HandRightRightTouched"):
-            return "tr"
-        elif button in ("HandLeftBackTouched", "HandLeftLeftTouched", "HandLeftRightTouched"):
-            return 'tl'
+    # # Converts the retuns of the physical button presses to the ingame names
+    # def physical_to_ingame(self, button):
+    #     if button == "RightBumperPressed":
+    #         return "br"
+    #     elif button == "LeftBumperPressed":
+    #         return "bl"
+    #     elif button in ("HandRightBackTouched", "HandRightLeftTouched", "HandRightRightTouched"):
+    #         return "tr"
+    #     elif button in ("HandLeftBackTouched", "HandLeftLeftTouched", "HandLeftRightTouched"):
+    #         return 'tl'
 
     # Generate single turn of the game
     def create_mole(self):
         self.current_button = None
         time.sleep(self.generate_random(1.5, 2.5))
-        self.current_button = self.ingame_buttons[random.randrange(0, 4)]
+        self.current_button = list(self.ingame_buttons)[random.randrange(0, 4)]
+        #self.current_button = self.ingame_buttons[random.randrange(0, 4)]
 
         # Say the the button to press, left/right is reversed.
-        word_to_say = ""
-        if self.current_button == "br":
-            word_to_say = "Linkervoet!"
-        elif self.current_button == "bl":
-            word_to_say = "Rechtervoet!"
-        elif self.current_button == "tr":
-            word_to_say = "Linkerhand!"
-        else:
-            word_to_say = "Rechterhand!"
+        # word_to_say = ""
+        # if self.current_button == "br":
+        #     word_to_say = "Linkervoet!"
+        # elif self.current_button == "bl":
+        #     word_to_say = "Rechtervoet!"
+        # elif self.current_button == "tr":
+        #     word_to_say = "Linkerhand!"
+        # else:
+        #     word_to_say = "Rechterhand!"
 
-        self.say(word_to_say)
+        self.say(self.ingame_buttons[self.current_button] + '!')
+        #self.say(word_to_say)
         self.speechLock.acquire()
 
         t = self.generate_random(3, 6)
@@ -83,7 +94,7 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         self.set_leds({'name': 'rotate', 'colour': 0x0033FF33,
                       'rotation_time': 0.5, 'time': t})
         self.buttonLock.acquire(timeout=t)
-        if self.current_button == self.physical_to_ingame(self.button_pressed):
+        if self.current_button == self.button_dict[self.button_pressed]:
             return True
         return False
 
@@ -107,27 +118,12 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
             self.host = True
             return False
 
-        elif self.move_to_make == "linkervoet":
-            self.do_gesture("simonsayshost-a4203c/move-left-foot")
+        if self.move_to_make in list(self.speech_dict):
+            self.do_gesture("simonsayshost-a4203c/" + self.speech_dict[self.move_to_make])
             self.movementLock.acquire()
-
-        elif self.move_to_make == "rechtervoet":
-            self.do_gesture("simonsayshost-a4203c/move-right-foot")
-            self.movementLock.acquire()
-
-        elif self.move_to_make == "linkerhand":
-            self.do_gesture("simonsayshost-a4203c/move-left-arm")
-            self.movementLock.acquire()
-
-        elif self.move_to_make == "rechterhand":
-            self.do_gesture("simonsayshost-a4203c/move-right-arm")
-            self.movementLock.acquire()
-
         else:
             self.say("Sorry, ik kon je niet goed horen!")
             self.speechLock.acquire()
-
-        # Listen if correct?
         return True
 
     # Explanation of the game where the robot shows what the player is supposed to do
@@ -213,7 +209,7 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         if event == "TextDone":
             self.speechLock.release()
 
-        if event in self.physical_buttons_pressed:
+        if event in list(self.button_dict):
             if self.can_press:
                 print("... {}".format(event))
                 self.can_press = False
