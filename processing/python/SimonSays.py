@@ -31,9 +31,9 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
                                          "HandRightLeftTouched": "tr", "HandRightRightTouched": "tr", "HandLeftLeftTouched": "tl",
                                          "HandLeftRightTouched": "tl", "HandLeftBackPressed": "tl"}
 
-        self.button_dict = ["RightBumperPressed", "LeftBumperPressed", "HandRightBackPressed"
-                                         "HandRightLeftTouched", "HandRightRightTouched", "HandLeftLeftTouched",
-                                         "HandLeftRightTouched", "HandLeftBackPressed"]
+        # self.button_dict = ["RightBumperPressed", "LeftBumperPressed", "HandRightBackPressed"
+        #                                  "HandRightLeftTouched", "HandRightRightTouched", "HandLeftLeftTouched",
+        #                                  "HandLeftRightTouched", "HandLeftBackPressed"]
         self.physical_buttons_released = ["RightBumperReleased", "LeftBumperReleased", "HandRightBackReleased",
                                           "HandRightLeftReleased", "HandRightRightReleased", "HandLeftLeftReleased",
                                           "HandLeftRightReleased", "HandLeftBackReleased"]
@@ -94,8 +94,9 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         self.set_leds({'name': 'rotate', 'colour': 0x0033FF33,
                       'rotation_time': 0.5, 'time': t})
         self.buttonLock.acquire(timeout=t)
-        if self.current_button == self.button_dict[self.button_pressed]:
-            return True
+        if self.button_pressed:
+            if self.current_button == self.button_dict[self.button_pressed]:
+                return True
         return False
 
     # Subroutine to make a guess of the word that is said and perform a motion
@@ -165,6 +166,8 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         self.playing = True
 
         # Put robot in right position for host
+        self.set_autonomous_life_off()
+        self.movementLock.acquire()
         self.do_gesture("simonsayshost-a4203c/sit-down")
         self.movementLock.acquire()
         self.follow_face(True)
@@ -225,7 +228,7 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         if event in ["FrontTactilTouched", "MiddleTactilTouched", "RearTactilTouched"]:
             self.playing = False
 
-        if event == "GestureDone":
+        if event == "GestureDone"or event == "SetAutonomousLifeDisabledDone":
             self.movementLock.release()
 
         if event == "StopFollowFaceDone":

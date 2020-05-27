@@ -3,6 +3,7 @@ import ssl
 from signal import signal, SIGTERM, SIGINT, pause
 
 from naoqi import ALProxy
+import qi
 from threading import Thread
 import redis
 import os
@@ -31,12 +32,14 @@ class RobotConsumer:
         self.tts = ALProxy('ALTextToSpeech', robot_ip, robot_port)
         self.atts = ALProxy('ALAnimatedSpeech', robot_ip, robot_port)
         self.animation = ALProxy('ALAnimationPlayer', robot_ip, robot_port)
+        self.al = ALProxy("ALAutonomousLife", robot_ip, robot_port)
         self.leds = ALProxy('ALLeds', robot_ip, robot_port)
         self.language = ALProxy('ALDialog', robot_ip, robot_port)
         self.awareness = ALProxy('ALBasicAwareness', robot_ip, robot_port)
         self.awareness.setEngagementMode('FullyEngaged')
         self.motion = ALProxy('ALMotion', robot_ip, robot_port)
         self.audio_player = ALProxy('ALAudioPlayer', robot_ip, robot_port)
+        self.tracker = ALProxy("ALTracker", robot_ip, robot_port)
 
         # create a folder on robot to temporarily store loaded audio files
         self.audio_folder = os.path.join(os.getcwd(), 'sounds')
@@ -79,7 +82,7 @@ class RobotConsumer:
             self.animation.run(data)
             self.produce('GestureDone')
         elif channel == 'action_followface':
-            self.follow_face(data)
+            self.follow_face(int(data))
         elif channel == 'action_eyecolour':
             self.produce('EyeColourStarted')
             self.change_eye_colour(data)
@@ -168,24 +171,25 @@ class RobotConsumer:
                 self.produce('BreathingEnabled')
             else:
                 self.produce('BreathingDisabled')
+        elif channel == 'action_autonomous_life_disabled':
+            self.produce("SetAutonomousLifeDisabledStarted")
+            self.al.setState("disabled")
+            self.produce("SetAutonomousLifeDisabledDone")
         else:
             print 'Unknown command'
 
     def follow_face(self, value):
-        print("Test")
-        print value, type(value)
-        if int(value) == 1:
-            print "followed_face is: ", self.followed_face
-            if not self.followed_face:
-                self.produce("FollowFaceStarted")
-                self.followed_face = self.animation.run("simonsayshost-a4203c/follow-face", _async=True)
-                self.produce("FollowFaceDone")
+        if value == 1:
+            self.produce("FollowFaceStarted")
+            self.followed_face = True
+            self.tracker.registerTarget("Face", 0.1)
+            self.tracker.track("Face")
+            self.produce("FollowFaceDone")
         else:
-            if self.followed_face:
-                self.produce("StopFollowFaceStarted")
-                self.followed_face.cancel()
-                self.followed_face = None
-                self.produce("StopFollowFaceDone")
+            self.produce("StopFollowFaceStarted")
+            self.tracker.stopTracker()
+            self.tracker.unregisterAllTargets()
+            self.produce("StopFollowFaceDone")
 
     def change_eye_colour(self, value):
         self.leds.off('FaceLeds')
@@ -277,5 +281,6 @@ if __name__ == '__main__':
                                                                'action_play_audio', 'action_load_audio', 'action_clear_audio',
                                                                'action_speech_param', 'action_turn',
                                                                'action_turn_small', 'action_wakeup', 'action_rest',
-                                                               'action_set_breathing', 'action_change_leds', 'action_followface'])
+                                                               'action_set_breathing', 'action_change_leds', 'action_followface',
+                                                               'action_autonomous_life_disabled'])
     robot_consumer.run_forever()

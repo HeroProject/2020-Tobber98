@@ -245,6 +245,9 @@ class AbstractSICConnector(object):
             raise IllegalActionForRobot()
         self.__send('action_set_breathing', 'Body;' + '1' if enable else '0')
 
+    def set_autonomous_life_off(self):
+        self.__send('action_autonomous_life_disabled', '')
+
     ###########################
     # Management              #
     ###########################

@@ -15,7 +15,7 @@
       <BehaviorLayer name="behavior_layer1">
         <BehaviorKeyframe name="keyframe1" index="1">
           <Diagram>
-            <Box name="Face Tracker" id="4" localization="-1" tooltip="This box makes the robot track a face with different modes." x="412" y="32">
+            <Box name="Face Tracker" id="4" localization="-1" tooltip="This box makes the robot track a face with different modes." x="408" y="130">
               <bitmap>media/images/box/interaction/target_face.png</bitmap>
               <script language="4">
                 <content>
