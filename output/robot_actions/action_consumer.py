@@ -79,7 +79,8 @@ class RobotConsumer:
             self.produce('TextDone')
         elif channel == 'action_gesture':
             self.produce('GestureStarted')
-            self.animation.run(data)
+            x = self.animation.run(data)
+            print "Return from gesture is:", x
             self.produce('GestureDone')
         elif channel == 'action_followface':
             self.follow_face(int(data))
@@ -172,9 +173,14 @@ class RobotConsumer:
             else:
                 self.produce('BreathingDisabled')
         elif channel == 'action_autonomous_life_disabled':
-            self.produce("SetAutonomousLifeDisabledStarted")
-            self.al.setState("disabled")
-            self.produce("SetAutonomousLifeDisabledDone")
+            if data == "set":
+                self.produce("SetAutonomousLifeDisabledStarted")
+                self.al.setState("disabled")
+                self.produce("SetAutonomousLifeDisabledDone")
+            elif data == "get":
+                self.produce("GetAutonomousLifeDisabledStarted")
+                is_autonomous= "False" if self.al.getState() == "disabled" else "True"
+                self.produce("GetAutonomousLifeDisabled|" + is_autonomous)
         else:
             print 'Unknown command'
 

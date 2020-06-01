@@ -30,10 +30,6 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         self.button_dict = {"RightBumperPressed": "br", "LeftBumperPressed": "bl", "HandRightBackPressed": "tr",
                                          "HandRightLeftTouched": "tr", "HandRightRightTouched": "tr", "HandLeftLeftTouched": "tl",
                                          "HandLeftRightTouched": "tl", "HandLeftBackPressed": "tl"}
-
-        # self.button_dict = ["RightBumperPressed", "LeftBumperPressed", "HandRightBackPressed"
-        #                                  "HandRightLeftTouched", "HandRightRightTouched", "HandLeftLeftTouched",
-        #                                  "HandLeftRightTouched", "HandLeftBackPressed"]
         self.physical_buttons_released = ["RightBumperReleased", "LeftBumperReleased", "HandRightBackReleased",
                                           "HandRightLeftReleased", "HandRightRightReleased", "HandLeftLeftReleased",
                                           "HandLeftRightReleased", "HandLeftBackReleased"]
@@ -56,37 +52,13 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
             self.speedup = self.score * 0.05
         return round(abs(random.uniform(min - self.speedup, max - self.speedup)), 2)
 
-    # # Converts the retuns of the physical button presses to the ingame names
-    # def physical_to_ingame(self, button):
-    #     if button == "RightBumperPressed":
-    #         return "br"
-    #     elif button == "LeftBumperPressed":
-    #         return "bl"
-    #     elif button in ("HandRightBackTouched", "HandRightLeftTouched", "HandRightRightTouched"):
-    #         return "tr"
-    #     elif button in ("HandLeftBackTouched", "HandLeftLeftTouched", "HandLeftRightTouched"):
-    #         return 'tl'
-
     # Generate single turn of the game
     def create_mole(self):
         self.current_button = None
         time.sleep(self.generate_random(1.5, 2.5))
         self.current_button = list(self.ingame_buttons)[random.randrange(0, 4)]
-        #self.current_button = self.ingame_buttons[random.randrange(0, 4)]
-
-        # Say the the button to press, left/right is reversed.
-        # word_to_say = ""
-        # if self.current_button == "br":
-        #     word_to_say = "Linkervoet!"
-        # elif self.current_button == "bl":
-        #     word_to_say = "Rechtervoet!"
-        # elif self.current_button == "tr":
-        #     word_to_say = "Linkerhand!"
-        # else:
-        #     word_to_say = "Rechterhand!"
 
         self.say(self.ingame_buttons[self.current_button] + '!')
-        #self.say(word_to_say)
         self.speechLock.acquire()
 
         t = self.generate_random(3, 6)
@@ -155,7 +127,7 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         self.speechLock.acquire()
 
     # Start of the game
-    def start(self):
+    def start_game(self):
         # Set language to Dutch
         self.set_language('nl-NL')
         self.langLock.acquire()
@@ -166,11 +138,12 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         self.playing = True
 
         # Put robot in right position for host
+        self.do_gesture("simonsayshost-a4203c/check-autonomous")
+        self.movementLock.acquire()
         self.set_autonomous_life_off()
         self.movementLock.acquire()
         self.do_gesture("simonsayshost-a4203c/sit-down")
         self.movementLock.acquire()
-        self.follow_face(True)
 
         # Start of game message
         self.say("Laten we beginnen. Druk op mijn hoofd om the stoppen!")
@@ -200,8 +173,6 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
             self.say("Oké, we stoppen.")
         self.speechLock.acquire()
         self.score = 0
-        self.follow_face(False)
-        self.faceLock.acquire()
 
     # On return of an event perform this function
     def on_robot_event(self, event):
@@ -231,9 +202,6 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
         if event == "GestureDone"or event == "SetAutonomousLifeDisabledDone":
             self.movementLock.release()
 
-        if event == "StopFollowFaceDone":
-            self.faceLock.release()
-
     # When there is an audio intent found that corresponds with the current context,
     # perform a certain action.
     def on_audio_intent(self, *args, intentName):
@@ -247,4 +215,5 @@ class SimonSays(Base.AbstractSICConnector):   #AbstractApplication):
 if __name__ == "__main__":
     wam = SimonSays()
     wam.start()
+    wam.start_game()
     wam.stop()
