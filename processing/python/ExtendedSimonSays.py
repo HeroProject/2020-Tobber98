@@ -17,7 +17,7 @@ class SimonSays(Base.AbstractSICConnector):
         # Booleans to determine who is host and if explanation is needed
         self.start_time = None
         self.first_time = False
-        self.host = False
+        self.host = True
         self.consecutive_role = 0
         self.autonomous = None
         
@@ -47,8 +47,8 @@ class SimonSays(Base.AbstractSICConnector):
                             "HandRightRightTouched": "tr", "HandLeftLeftTouched": "tl", "HandLeftRightTouched": "tl", "HandLeftBackPressed": "tl"}
         self.physical_buttons_released = ["RightBumperReleased", "LeftBumperReleased", "HandRightBackReleased", "HandRightLeftReleased", 
                                             "HandRightRightReleased", "HandLeftLeftReleased", "HandLeftRightReleased", "HandLeftBackReleased"]
-        self.speech_dict = {"linkervoet": "move-left-foot", "rechtervoet": "move-right-foot",
-                        "linkerhand": "move-left-arm", "rechterhand": "move-right-arm"}
+        self.speech_dict = {"linkervoet": "move-right-foot", "rechtervoet": "move-left-foot",
+                        "linkerhand": "move-right-arm", "rechterhand": "move-left-arm"}
 
         # Created locks
         self.turnLock = Semaphore(0)
@@ -57,6 +57,7 @@ class SimonSays(Base.AbstractSICConnector):
         self.movementLock = Semaphore(0)
         self.buttonLock = Semaphore(0)
         self.faceLock = Semaphore(0)
+        self.listenLock = Semaphore(0)
 
     # Generate rondom float between min and max values given
     def generate_random(self, min, max):
@@ -207,7 +208,7 @@ class SimonSays(Base.AbstractSICConnector):
             self.listen("answer_closed", ("ja", "nee", "graag"), 3)
             self.check_response()
         else:
-            self.say("Wil je wisselen of wil je {} blijven?".format(role))
+            self.say("Wil je wisselen?".format(role))
             self.speechLock.acquire()
             self.listen("answer_closed", ("ja", "nee", "graag"), 3)
             self.check_response()
@@ -364,7 +365,6 @@ class SimonSays(Base.AbstractSICConnector):
         if intent_name == 'make_move' and len(args) > 0:
             print(args[0])
             self.response = args[0]
-            self.listenLock.release()
 
         elif intent_name == 'answer_closed' and len(args) > 0:
             print(args[0])
@@ -374,13 +374,9 @@ class SimonSays(Base.AbstractSICConnector):
                 self.response = False
             else:
                 self.response = None
-            self.listenLock.release()
         
         elif intent_name == "choose_level" and len(args) > 0:
             print(args[0])
-            self.response = args[0]
-        
-        elif args[0] in ['1', '2', '3', '4', '5'] and self.choose_difficulty:
             self.response = args[0]
         
         else:

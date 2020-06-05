@@ -14,8 +14,8 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
         self.set_dialogflow_agent('ronald-ywcxbh')
 
         # Booleans to determine who is host and if explanation is needed
-        self.first_time = False
-        self.host = False
+        self.first_time = True
+        self.host = True
 
         # Elements of the game that need to be tracked
         self.score = 0
@@ -139,14 +139,12 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
                 Laten we beginnen met een oefenronde. Ik zeg iets en jij moet op de knop drukken.")
         self.speechLock.acquire()
 
-        self.do_gesture("simonsayshost-a4203c/sit-down")
-        self.movementLock.acquire()
         while not self.create_mole():
             if self.can_press:
+                self.can_press = False
                 self.say(
                     "Je was niet snel genoeg. We proberen het nog een keer.")
                 self.speechLock.acquire()
-                self.can_press = False
             else:
                 self.say(
                     "Dat was de verkeerde knop. We proberen het nog een keer.")
@@ -180,6 +178,8 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
                         "Dat was de verkeerde knop. Je score was {:d}!".format(self.score))
                     self.speechLock.acquire()
                 self.say("Okay, we wisselen.")
+                self.current_button = None
+                self.buttonLock = Semaphore(0)
                 self.host = not self.host
                 self.score = 0
                 self.speechLock.acquire()
@@ -212,11 +212,6 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
         self.set_language('nl-NL')
         self.langLock.acquire()
 
-        if self.first_time:
-            self.explain_game()
-
-        self.playing = True
-
         # Put robot in right position for host
         self.set_autonomous_life_off("get")
         self.movementLock.acquire()
@@ -225,6 +220,11 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
             self.movementLock.acquire()
         self.do_gesture("simonsayshost-a4203c/sit-down")
         self.movementLock.acquire()
+
+        if self.first_time:
+            self.explain_game()
+
+        self.playing = True
 
         # Start of game message
         self.say("Laten we beginnen. Druk op mijn hoofd om the stoppen!")
