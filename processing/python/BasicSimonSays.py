@@ -14,11 +14,12 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
         self.set_dialogflow_agent('ronald-ywcxbh')
 
         # Booleans to determine who is host and if explanation is needed
-        self.first_time = True
+        self.first_time = False
         self.host = True
 
         # Elements of the game that need to be tracked
         self.score = 0
+        self.robot_score = 0
         self.speedup = 0
         self.consecutive_missed = 0
         self.can_press = False
@@ -114,8 +115,8 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
             self.do_gesture("simonsayshost-a4203c/" +
                             self.speech_dict[self.response])
             self.movementLock.acquire()
-            self.score += 1
-        elif  self.consecutive_missed > 2:
+            self.robot_score += 1
+        elif  self.consecutive_missed > 2 or self.robot_score > 10:
             self.consecutive_missed = 0
             self.do_gesture("simonsayshost-a4203c/" + list(self.speech_dict.values())[random.randrange(0, 4)])
             self.movementLock.acquire()
@@ -182,6 +183,7 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
                 self.buttonLock = Semaphore(0)
                 self.host = not self.host
                 self.score = 0
+                self.robot_score = 0
                 self.speechLock.acquire()
                 print(self.host)
                 if self.host:
