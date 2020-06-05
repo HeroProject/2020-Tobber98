@@ -278,7 +278,7 @@ class AbstractSICConnector(object):
     def __listen(self, message):
         channel = message['channel'].decode()
         data = message['data'].decode()
-        print(data, "received on channel", channel)
+        # print(data, "received on channel", channel)
         if channel == self.__topics[0]:
             self.on_robot_event(event=data)
         elif channel == self.__topics[1]:
@@ -288,6 +288,7 @@ class AbstractSICConnector(object):
         elif channel == self.__topics[3]:
             self.on_audio_language(language_key=data)
         elif channel == self.__topics[4]:
+            print(data)
             data = data.split('|')
             self.on_audio_intent(intent_name=data[0], *data[1:])
         elif channel == self.__topics[5]:
@@ -298,6 +299,6 @@ class AbstractSICConnector(object):
             self.on_new_picture_file(picture_file=data)
 
     def __send(self, channel, data):
-        print(data, "send on channel", channel)
+        # print(data, "send on channel", channel)
         self.__redis.publish(channel, data)
 
