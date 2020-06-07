@@ -370,7 +370,6 @@ class SimonSays(Base.AbstractSICConnector):
         if intent_name == 'make_move' and len(args) > 0:
             print(args[0])
             self.response = args[0]
-            self.listenLock.release()
 
         elif intent_name == 'answer_closed' and len(args) > 0:
             print(args[0])
@@ -380,7 +379,6 @@ class SimonSays(Base.AbstractSICConnector):
                 self.response = False
             else:
                 self.response = None
-            self.listenLock.release()
         
         elif intent_name == "choose_level" and len(args) > 0:
             print(args[0])
@@ -388,7 +386,6 @@ class SimonSays(Base.AbstractSICConnector):
         
         else:
             print("Error error error")
-            self.listenLock.release()
 
 
 if __name__ == "__main__":
