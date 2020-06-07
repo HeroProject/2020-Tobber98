@@ -133,7 +133,7 @@ class SimonSays(Base.AbstractSICConnector):
                 self.do_gesture("simonsayshost-a4203c/" + self.speech_dict[self.response])
                 self.consecutive_missed = 0
                 self.movementLock.acquire()
-                self.robot_score += 1
+                self.robot_score += 3
         else:
             self.consecutive_missed += 1
             self.say("Sorry, ik kon je niet goed horen!")
@@ -154,9 +154,6 @@ class SimonSays(Base.AbstractSICConnector):
                 Hetzelfde geldt voor wanneer ik luister terwijl jij spelleider bent. \
                 Laten we beginnen met een oefenronde. Ik zeg iets en jij moet op de knop drukken.")
         self.speechLock.acquire()
-
-        self.do_gesture("simonsayshost-a4203c/sit-down")
-        self.movementLock.acquire()
 
         while not self.create_mole():
             if self.can_press:
@@ -193,6 +190,9 @@ class SimonSays(Base.AbstractSICConnector):
         self.say("Zullen we nog een potje doen?")
         self.speechLock.acquire()
         self.listen("answer_closed", ("ja", "nee", "graag"), 3)
+
+        if self.response == False:
+            return False
         
         self.consecutive_role += 1
         role = "speler" if self.host else "spelleider"
@@ -236,6 +236,8 @@ class SimonSays(Base.AbstractSICConnector):
         # Call button and wait for response
         while self.playing:
             while True:
+                if not self.playing:
+                        break
                 if self.host:
                     if self.turns_on_difficulty >= 10 and not self.difficulty == 4:
                         self.change_difficulty()
@@ -269,7 +271,10 @@ class SimonSays(Base.AbstractSICConnector):
                             self.score = 0
                             if self.score < 5 and self.difficulty > 0:
                                 self.difficulty -= 1
+                                self.lives_left = self.lives[self.difficulty]
                                 self.say("Oké, dit was misschien wat te moeilijk, maar dat maakt niet uit. We maken het gewoon iets makkelijker.")
+                                self.speechLock.acquire()
+                                
 
                             if self.ask_to_stop():
                                 break
@@ -283,7 +288,7 @@ class SimonSays(Base.AbstractSICConnector):
             self.say("Wil je echt niet meer spelen? Als je toch door wil gaan moet je op een knop drukken.")
             self.speechLock.acquire()
             self.current_button = None
-            self.buttonLock.acquire(timeout=5)
+            self.buttonLock.acquire(timeout=3)
             if not self.current_button:
                 break
         self.say("Oké we stoppen.")
@@ -303,9 +308,6 @@ class SimonSays(Base.AbstractSICConnector):
         self.set_language('nl-NL')
         self.langLock.acquire()
 
-        if self.first_time:
-            self.explain_game()
-
         # Put robot in right position for host
         self.set_autonomous_life_off("get")
         self.movementLock.acquire()
@@ -315,6 +317,9 @@ class SimonSays(Base.AbstractSICConnector):
         self.do_gesture("simonsayshost-a4203c/sit-down")
         self.movementLock.acquire()
         self.follow_face(True)
+
+        if self.first_time:
+            self.explain_game()
 
         # Start of game message
         self.say("Laten we beginnen. Druk op mijn hoofd om the stoppen!")
@@ -365,6 +370,7 @@ class SimonSays(Base.AbstractSICConnector):
         if intent_name == 'make_move' and len(args) > 0:
             print(args[0])
             self.response = args[0]
+            self.listenLock.release()
 
         elif intent_name == 'answer_closed' and len(args) > 0:
             print(args[0])
@@ -374,6 +380,7 @@ class SimonSays(Base.AbstractSICConnector):
                 self.response = False
             else:
                 self.response = None
+            self.listenLock.release()
         
         elif intent_name == "choose_level" and len(args) > 0:
             print(args[0])
@@ -381,6 +388,7 @@ class SimonSays(Base.AbstractSICConnector):
         
         else:
             print("Error error error")
+            self.listenLock.release()
 
 
 if __name__ == "__main__":
