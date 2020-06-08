@@ -4,7 +4,6 @@ import random
 import time
 
 
-
 class SimonSays(Base.AbstractSICConnector):
     def __init__(self):
         super(SimonSays, self).__init__(server_ip='192.168.0.200', robot='nao')
@@ -268,12 +267,12 @@ class SimonSays(Base.AbstractSICConnector):
                             self.last_score = self.score
                             if self.score > self.high_score:
                                 self.high_score = self.score
-                            self.score = 0
                             if self.score < 5 and self.difficulty > 0:
                                 self.difficulty -= 1
                                 self.lives_left = self.lives[self.difficulty]
                                 self.say("Oké, dit was misschien wat te moeilijk, maar dat maakt niet uit. We maken het gewoon iets makkelijker.")
                                 self.speechLock.acquire()
+                            self.score = 0
                                 
 
                             if self.ask_to_stop():
@@ -332,7 +331,6 @@ class SimonSays(Base.AbstractSICConnector):
     # On return of an event perform this function
     def on_robot_event(self, event):
         if event == "LanguageChanged":
-            print("test")
             self.langLock.release()
 
         if event == "TextDone":
