@@ -281,7 +281,8 @@ class SimonSays(Base.AbstractSICConnector):
                 else:
                     if not self.guess():
                         self.robot_score = 0
-                        self.ask_to_stop()
+                        if self.ask_to_stop():
+                            break
                         # Something whether to stop or keep playing increase/decrease difficulty
         
             self.say("Wil je echt niet meer spelen? Als je toch door wil gaan moet je op een knop drukken.")
