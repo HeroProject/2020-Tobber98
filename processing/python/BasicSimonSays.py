@@ -128,7 +128,7 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
 
     # Explanation of the game where the robot shows what the player is supposed to do
     def explain_game(self):
-        self.say_animated("Hé, leuk dat je *spelnaam* met mij wil spelen. \
+        self.say("Hé, leuk dat je *spelnaam* met mij wil spelen. \
             Ik zal het proberen uit te leggen. Er zijn twee manieren om het spel te spelen. \
             De eerste manier is dat ik zeg wat jij aan moet tikken en de tweede manier is dat jij zegt wat ik moet bewegen.")
         self.speechLock.acquire()

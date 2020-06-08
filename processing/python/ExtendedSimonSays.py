@@ -143,7 +143,7 @@ class SimonSays(Base.AbstractSICConnector):
     # Explanation of the game where the robot shows what the player is supposed to do
     def explain_game(self):
 
-        self.say_animated("Hé, leuk dat je Commando Robot met mij wilt spelen. \
+        self.say("Hé, leuk dat je Commando Robot met mij wilt spelen. \
             Ik zal het proberen uit te leggen. Er zijn twee manieren om het spel te spelen. \
             De eerste manier is dat ik zeg wat jij aan moet tikken en de tweede manier is dat jij zegt wat ik moet bewegen.")
         self.speechLock.acquire()
@@ -288,7 +288,9 @@ class SimonSays(Base.AbstractSICConnector):
             self.say("Wil je echt niet meer spelen? Als je toch door wil gaan moet je op een knop drukken.")
             self.speechLock.acquire()
             self.current_button = None
+            self.can_press = True
             self.buttonLock.acquire(timeout=3)
+            self.can_press = False
             if not self.current_button:
                 break
         self.say("Oké we stoppen.")
