@@ -4,10 +4,6 @@ from threading import Semaphore
 import random
 import time
 
-import sys
-import pandas as pd
-from datetime import datetime
-
 
 class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
     def __init__(self):
@@ -20,17 +16,6 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
         # Booleans to determine who is host and if explanation is needed
         self.first_time = False
         self.host = True
-
-        # data collection
-        self.scores = []
-        self.times_player = 0
-        self.times_host = 0
-        self.min_difficulty = 2
-        self.max_difficulty = 2
-        self.times_missed_button = 0
-        self.times_too_late = 0
-        self.times_spoken = 0
-        self.times_misheard = 0
 
         # Elements of the game that need to be tracked
         self.score = 0
@@ -114,7 +99,6 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
         self.button_pressed = None
         self.say("Ik luister.")
         self.speechLock.acquire()
-        self.times_spoken += 1
 
         self.listen("make_move", ("linkervoet", "rechtervoet", "linkerhand", "rechterhand", "fout"))
 
@@ -140,100 +124,31 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
             self.consecutive_missed += 1
             self.say("Sorry, ik kon je niet goed horen!")
             self.speechLock.acquire()
-            self.times_misheard += 1
         return True
-
-    # Explanation of the game where the robot shows what the player is supposed to do
-    def explain_game(self):
-        self.say("Hé, leuk dat je *spelnaam* met mij wil spelen. \
-            Ik zal het proberen uit te leggen. Er zijn twee manieren om het spel te spelen. \
-            De eerste manier is dat ik zeg wat jij aan moet tikken en de tweede manier is dat jij zegt wat ik moet bewegen.")
-        self.speechLock.acquire()
-
-        self.set_leds({"name": "rotate", "colour": 0x0033FF33,
-                       "rotation_time": 1, "time": 4})
-        self.say("Mijn ogen zullen draaien, zoals ze nu doen, als je kunt drukken op mijn knoppen. \
-                Hetzelfde geldt voor wanneer ik luister terwijl jij spelleider bent. \
-                Laten we beginnen met een oefenronde. Ik zeg iets en jij moet op de knop drukken.")
-        self.speechLock.acquire()
-
-        while not self.create_mole():
-            if self.can_press:
-                self.can_press = False
-                self.say(
-                    "Je was niet snel genoeg. We proberen het nog een keer.")
-                self.speechLock.acquire()
-            else:
-                self.say(
-                    "Dat was de verkeerde knop. We proberen het nog een keer.")
-                self.speechLock.acquire()
-        self.say("Zo moet het.")
-        self.speechLock.acquire()
 
     def run_until_quit(self):
         # Call button and wait for response
-        while(self.playing):
-            while True:
-                if self.host:
-                    if self.create_mole():
-                        self.score += 1
-                    else:
-                        self.times_player += 1
-                        break
+        self.right = 0
+        while True:
+            if self.host:
+                if not self.create_mole():
+                    self.say("Dat was niet goed probeer het nog een keer.")
+                    self.speechLock.acquire()
                 else:
-                    if not self.guess():
-                        self.times_host += 1
-                        break
-                
-                if not self.playing:
-                    break
-
-            if self.playing:
-                if self.can_press and self.host:
-                    self.say(
-                        "Je was niet snel genoeg. Je score was {:d}!".format(self.score))
+                    self.right += 1
+                    self.say("Juist zo moet het.")
                     self.speechLock.acquire()
-                    self.times_too_late += 1
-                elif self.host:
-                    self.say(
-                        "Dat was de verkeerde knop. Je score was {:d}!".format(self.score))
+                if self.right > 3:
+                    self.say("Nu moet jij zeggen wat ik moet doen.")
                     self.speechLock.acquire()
-                    self.times_missed_button += 1
-                self.say("Okay, we wisselen.")
-                self.current_button = None
-                self.buttonLock = Semaphore(0)
-                self.host = not self.host
-                self.scores.append(self.score)
-                self.score = 0
-                self.robot_score = 0
-                self.speechLock.acquire()
-                print(self.host)
-                if self.host:
-                    self.say("Welk niveau wil je spelen, kies een getal tussen 1 tot 5.")
-                    self.speechLock.acquire()
-                    self.response = None
-                    self.choose_difficulty = True
-                    self.listen("choose_level", ('1', '2', '3', '4', '5'))
-
-                    if self.response:
-                        self.difficulty = int(self.response) - 1
-                        self.lives_left = self.lives[self.difficulty]
-                        self.say("Het niveau is veranderd naar {}.".format(self.difficulty + 1))
-                        if self.min_difficulty > self.difficulty:
-                            self.min_difficulty = self.difficulty
-                        if self.max_difficulty < self.difficulty:
-                            self.max_difficulty = self.difficulty
-
-                    else:
-                        self.say("Ik kon je niet verstaan het niveau blijft {}.".format(self.difficulty + 1))
-                    self.speechLock.acquire()
-                    self.choose_difficulty = False
+                    self.host = not self.host
 
             else:
-                self.say("Oké, we stoppen.")
-                self.score = 0
-                self.speechLock.acquire()
-                break
+                if not self.guess():
+                    break
+
+        self.say("Oké, we stoppen.")
+        self.speechLock.acquire()
 
     # Start of the game
     def start_game(self):
@@ -250,15 +165,7 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
         self.do_gesture("simonsayshost-a4203c/sit-down")
         self.movementLock.acquire()
 
-        if self.first_time:
-            self.explain_game()
-
         self.playing = True
-
-        # Start of game message
-        self.say("Laten we beginnen. Druk op mijn hoofd om the stoppen!")
-        self.speechLock.acquire()
-
         self.run_until_quit()
 
     # On return of an event perform this function
@@ -301,40 +208,24 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
             print(args[0])
             self.response = args[0]
             self.listenLock.release()
+
         elif intent_name == 'answer_closed' and len(args) > 0:
             print(args[0])
-            if args[0] in ['ja', 'graag']:
-                self.response = True
-            elif args[0] == 'nee':
-                self.response = False
-            else:
-                self.response = None
-
+            self.response = True if args[0] == 'ja' else False
+            self.listenLock.release()
+            # release maybe?
+        
         elif intent_name == "choose_level" and len(args) > 0:
-            print(args[0])
-            # check if it is a number
-            self.response = int(args[0])
-    
-    def collect_data(self, id):
-        self.start_time = 0
-        df = pd.read_excel("simon_says_data.xlsx")
-        avg_score = sum(self.scores) / len(self.scores) if len(self.scores) > 0 else 0
-        row_dict = {'id': id, 'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"), 'version': 'basic', 'play_time': time.time() - self.start_time, 
-                    'high_score': self.high_score, 'avg_score': avg_score, 'times_host': self.times_host, 
-                    'times_player': self.times_player, 'min_difficulty': self.min_difficulty, 'max_difficulty': self.max_difficulty, 
-                    'times_missed_button': self.times_missed_button, 'times_too_late': self.times_too_late, 'times_robot_feedback': self.times_robot_feedback,
-                    'times_spoken': self.times_spoken, 'times_misheard': self.times_misheard}
-        df = df.append(pd.DataFrame([list(row_dict.values())], columns=list(df.columns)))
-        df.to_excel("simon_says_data.xlsx", float_format="%.2f", columns=list(df.columns), index=False)
+            # check if actual number
+            self.response = args[0]
+        
+        else:
+            print("Error error error")
+            self.listenLock.release()
+
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("No id was given")
-        exit(0)
-
     wam = SimonSays()
     wam.start()
     wam.start_game()
     wam.stop()
-
-    wam.collect_data(int(sys.argv[1]))
