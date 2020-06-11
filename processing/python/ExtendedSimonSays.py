@@ -8,6 +8,9 @@ import sys
 from datetime import datetime
 
 
+START_DIFFICULTY = 2
+
+
 class SimonSays(Base.AbstractSICConnector):
     def __init__(self):
         super(SimonSays, self).__init__(server_ip='192.168.0.200', robot='nao')
@@ -19,17 +22,17 @@ class SimonSays(Base.AbstractSICConnector):
 
         # Booleans to determine who is host and if explanation is needed
         self.start_time = None
+        self.autonomous = None
         self.first_time = False
         self.host = True
         self.consecutive_role = 0
-        self.autonomous = None
 
         # data collection
         self.scores = []
         self.times_player = 0
         self.times_host = 0
-        self.min_difficulty = 2
-        self.max_difficulty = 2
+        self.min_difficulty = START_DIFFICULTY
+        self.max_difficulty = START_DIFFICULTY
         self.times_missed_button = 0
         self.times_too_late = 0
         self.times_spoken = 0
@@ -51,7 +54,7 @@ class SimonSays(Base.AbstractSICConnector):
                             'Ga zo door.', 'Je bent echt goed bezig.', 'Wauw! Netjes.']
 
         # Difficulty management
-        self.difficulty = 2  # Level range 0 to 4
+        self.difficulty = START_DIFFICULTY  # Level range 0 to 4
         self.lives = [3, 2, 1, 1, 1]
         self.time_to_press = [10, 8, 5, 5, 2]
         self.flipped = [False, False, False, True, True]
@@ -60,13 +63,26 @@ class SimonSays(Base.AbstractSICConnector):
 
         # Available buttons to press and release in game
         self.ingame_buttons = {
-            "bl": "Rechtervoet", "tl": "Rechterhand", "br": "Linkervoet", "tr": "Linkerhand"}
-        self.button_dict = {"RightBumperPressed": "br", "LeftBumperPressed": "bl", "HandRightBackPressed": "tr", "HandRightLeftTouched": "tr",
-                            "HandRightRightTouched": "tr", "HandLeftLeftTouched": "tl", "HandLeftRightTouched": "tl", "HandLeftBackPressed": "tl"}
+            "bl": "Rechtervoet",
+            "tl": "Rechterhand",
+            "br": "Linkervoet",
+            "tr": "Linkerhand"}
+        self.button_dict = {
+            "RightBumperPressed": "br",
+            "LeftBumperPressed": "bl",
+            "HandRightBackPressed": "tr",
+            "HandRightLeftTouched": "tr",
+            "HandRightRightTouched": "tr",
+            "HandLeftLeftTouched": "tl",
+            "HandLeftRightTouched": "tl",
+            "HandLeftBackPressed": "tl"}
         self.physical_buttons_released = ["RightBumperReleased", "LeftBumperReleased", "HandRightBackReleased", "HandRightLeftReleased",
                                           "HandRightRightReleased", "HandLeftLeftReleased", "HandLeftRightReleased", "HandLeftBackReleased"]
-        self.speech_dict = {"linkervoet": "move-right-foot", "rechtervoet": "move-left-foot",
-                            "linkerhand": "move-right-arm", "rechterhand": "move-left-arm"}
+        self.speech_dict = {
+            "linkervoet": "move-right-foot",
+            "rechtervoet": "move-left-foot",
+            "linkerhand": "move-right-arm",
+            "rechterhand": "move-left-arm"}
 
         # Created locks
         self.turnLock = Semaphore(0)
@@ -152,6 +168,7 @@ class SimonSays(Base.AbstractSICConnector):
                 if random.randrange(0, 4) == 0:
                     self.say(self.hard_list[random.randrange(0, 4)])
                     self.speechLock.acquire()
+                    self.times_robot_feedback += 1
 
             else:
                 self.do_gesture("simonsayshost-a4203c/" +
@@ -319,6 +336,8 @@ class SimonSays(Base.AbstractSICConnector):
                                 self.speechLock.acquire()
                             self.score = 0
 
+                            if not self.playing:
+                                break
                             if self.ask_to_stop():
                                 break
                             # Something whether to stop or keep playing
@@ -414,6 +433,7 @@ class SimonSays(Base.AbstractSICConnector):
     def on_audio_intent(self, *args, intent_name):
         print("Args: ", args)
         print("Intent: ", intent_name)
+
         if intent_name == 'make_move' and len(args) > 0:
             print(args[0])
             self.response = args[0]
@@ -427,25 +447,31 @@ class SimonSays(Base.AbstractSICConnector):
             else:
                 self.response = None
 
-        elif intent_name == "choose_level" and len(args) > 0:
-            print(args[0])
-            # check if it is a number
-            self.response = args[0]
-
-        else:
-            print("Error error error")
-
+    # Collects data at the end of the play interaction and appends it as row to excel file
     def collect_data(self, id):
-        self.start_time = 0
-        df = pd.read_excel("simon_says_data.xlsx")
         avg_score = sum(self.scores) / len(self.scores) if len(self.scores) > 0 else 0
-        row_dict = {'id': id, 'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"), 'version': 'extended', 'play_time': time.time() - self.start_time, 
-                    'high_score': self.high_score, 'avg_score': avg_score, 'times_host': self.times_host, 
-                    'times_player': self.times_player, 'min_difficulty': self.min_difficulty, 'max_difficulty': self.max_difficulty, 
-                    'times_missed_button': self.times_missed_button, 'times_too_late': self.times_too_late, 'times_robot_feedback': self.times_robot_feedback,
-                    'times_spoken': self.times_spoken, 'times_misheard': self.times_misheard}
-        df = df.append(pd.DataFrame([list(row_dict.values())], columns=list(df.columns)))
-        df.to_excel("simon_says_data.xlsx", float_format="%.2f", columns=list(df.columns), index=False)
+        row_dict = {
+            'id': id,
+            'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            'version': 'extended',
+            'play_time': time.time() - self.start_time,
+            'high_score': self.high_score,
+            'avg_score': avg_score,
+            'times_host': self.times_host,
+            'times_player': self.times_player,
+            'min_difficulty': self.min_difficulty,
+            'max_difficulty': self.max_difficulty,
+            'times_missed_button': self.times_missed_button,
+            'times_too_late': self.times_too_late,
+            'times_robot_feedback': self.times_robot_feedback,
+            'times_spoken': self.times_spoken,
+            'times_misheard': self.times_misheard}
+
+        df = pd.read_excel("simon_says_data.xlsx")
+        df = df.append(pd.DataFrame(
+            [list(row_dict.values())], columns=list(df.columns)))
+        df.to_excel("simon_says_data.xlsx", float_format="%.2f",
+                    columns=list(df.columns), index=False)
 
 
 if __name__ == "__main__":
@@ -454,8 +480,11 @@ if __name__ == "__main__":
         exit(0)
 
     wam = SimonSays()
-    wam.start()
-    wam.start_game()
-    wam.stop()
-
-    wam.collect_data(int(sys.argv[1]))
+    try:
+        wam.start()
+        wam.start_game()
+        wam.stop()
+    except:
+        pass
+    finally:
+        wam.collect_data(int(sys.argv[1]))

@@ -22,6 +22,7 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
         self.host = True
 
         # data collection
+        self.start_time = time.time()
         self.scores = []
         self.times_player = 0
         self.times_host = 0
@@ -33,6 +34,7 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
         self.times_misheard = 0
 
         # Elements of the game that need to be tracked
+        self.high_score = 0
         self.score = 0
         self.robot_score = 0
         self.speedup = 0
@@ -178,8 +180,14 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
                     if self.create_mole():
                         self.score += 1
                     else:
-                        self.times_player += 1
-                        break
+                        self.lives_left -= 1
+                        if self.lives_left > 0:
+                            continue
+                        else:
+                            self.times_player += 1
+                            if self.score > self.high_score:
+                                self.high_score = self.score
+                            break
                 else:
                     if not self.guess():
                         self.times_host += 1
@@ -297,33 +305,38 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
     def on_audio_intent(self, *args, intent_name):
         print("Args: ", args)
         print("Intent: ", intent_name)
+
         if intent_name == 'make_move' and len(args) > 0:
             print(args[0])
             self.response = args[0]
             self.listenLock.release()
-        elif intent_name == 'answer_closed' and len(args) > 0:
-            print(args[0])
-            if args[0] in ['ja', 'graag']:
-                self.response = True
-            elif args[0] == 'nee':
-                self.response = False
-            else:
-                self.response = None
 
         elif intent_name == "choose_level" and len(args) > 0:
-            print(args[0])
-            # check if it is a number
-            self.response = int(args[0])
+            try:
+                self.response = int(args[0])
+            except:
+                self.response = None
     
+    # Collects data at the end of the play interaction and appends it as row to excel file
     def collect_data(self, id):
-        self.start_time = 0
-        df = pd.read_excel("simon_says_data.xlsx")
         avg_score = sum(self.scores) / len(self.scores) if len(self.scores) > 0 else 0
-        row_dict = {'id': id, 'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"), 'version': 'basic', 'play_time': time.time() - self.start_time, 
-                    'high_score': self.high_score, 'avg_score': avg_score, 'times_host': self.times_host, 
-                    'times_player': self.times_player, 'min_difficulty': self.min_difficulty, 'max_difficulty': self.max_difficulty, 
-                    'times_missed_button': self.times_missed_button, 'times_too_late': self.times_too_late, 'times_robot_feedback': self.times_robot_feedback,
-                    'times_spoken': self.times_spoken, 'times_misheard': self.times_misheard}
+        row_dict = {'id': id, 
+            'time': datetime.now().strftime("%d/%m/%Y %H:%M:%S"), 
+            'version': 'basic', 
+            'play_time': time.time() - self.start_time, 
+            'high_score': self.high_score, 
+            'avg_score': avg_score, 
+            'times_host': self.times_host, 
+            'times_player': self.times_player, 
+            'min_difficulty': self.min_difficulty, 
+            'max_difficulty': self.max_difficulty, 
+            'times_missed_button': self.times_missed_button, 
+            'times_too_late': self.times_too_late, 
+            'times_robot_feedback': 0,
+            'times_spoken': self.times_spoken, 
+            'times_misheard': self.times_misheard}
+
+        df = pd.read_excel("simon_says_data.xlsx")
         df = df.append(pd.DataFrame([list(row_dict.values())], columns=list(df.columns)))
         df.to_excel("simon_says_data.xlsx", float_format="%.2f", columns=list(df.columns), index=False)
 
@@ -333,8 +346,11 @@ if __name__ == "__main__":
         exit(0)
 
     wam = SimonSays()
-    wam.start()
-    wam.start_game()
-    wam.stop()
-
-    wam.collect_data(int(sys.argv[1]))
+    try:
+        wam.start()
+        wam.start_game()
+        wam.stop()
+    except:
+        pass
+    finally:
+        wam.collect_data(sys.argv[1])
