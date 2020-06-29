@@ -190,11 +190,13 @@ class RobotConsumer:
             self.followed_face = True
             self.tracker.registerTarget("Face", 0.1)
             self.tracker.track("Face")
+            self.al.setAutonomousAbilityEnabled("AutonomousBlinking", True)
             self.produce("FollowFaceDone")
         else:
             self.produce("StopFollowFaceStarted")
             self.tracker.stopTracker()
             self.tracker.unregisterAllTargets()
+            self.al.setAutonomousAbilityEnabled("AutonomousBlinking", False)
             self.produce("StopFollowFaceDone")
 
     def change_eye_colour(self, value):

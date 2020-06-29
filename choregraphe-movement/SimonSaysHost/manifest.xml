@@ -15,7 +15,6 @@
   <behaviorContent path="sit-down">
    <userRequestable/>
    <nature>interactive</nature>
-   <autonomous/>
    <permissions/>
   </behaviorContent>
   <behaviorContent path="move-right-arm">
@@ -44,7 +43,6 @@
   </behaviorContent>
   <behaviorContent path="stop-autonomous">
    <nature>interactive</nature>
-   <autonomous/>
    <permissions/>
   </behaviorContent>
   <behaviorContent path="check-autonomous">

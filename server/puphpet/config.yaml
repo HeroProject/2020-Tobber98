@@ -145,6 +145,9 @@ firewall:
                 - '6379'
                 - '8000'
                 - '8001'
+                - '8001'
+                - '8002'
+                - '8003'
             priority: '100'
             proto: tcp
             action: accept

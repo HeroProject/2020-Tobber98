@@ -1,0 +1,39 @@
+﻿id;time;version;play_time;high_score;avg_score;times_host;times_player;min_difficulty;max_difficulty;times_missed_button;times_too_late;times_robot_feedback;times_spoken;times_misheard;looking_at_experiment_leader;hit_but_misses;remarks
+1;11-06-20 16:41;extended;298,4;24;9;1;4;2;4;1;3;10;6;1;4;0;"Robot turned off before first interaction (had to restart)
+Crash at start"
+1;11-06-20 16:52;basic;381,21;32;15,75;2;2;3;4;2;0;0;14;2;3;0;keeps saying new high score
+2;11-06-20 17:20;basic;418,64;43;21,5;1;2;3;3;0;1;0;29;3;2;1;
+2;11-06-20 17:35;extended;243,01;96;48,5;0;2;2;5;1;1;6;0;0;1;0;
+3;11-06-20 19:22;basic;350,54;22;5,2;2;3;2;3;0;3;0;16;1;0;3;
+3;11-06-20 19:34;extended;393,26;46;20;2;4;2;5;0;4;8;9;2;0;2;
+4;11-06-20 20:00;extended;187,75;35;29;0;2;3;5;1;1;8;0;0;1;0;stops because he does not know what to say
+4;11-06-20 20:18;basic;506,72;38;8,33;3;3;3;4;0;3;0;29;7;3;3;
+5;11-06-20 20:57;basic;328,21;5;1,57;3;4;3;5;1;3;0;20;2;3;1;"does not understand that he/she needs to let go off the buttons
+ tries to say 'your' limb"
+5;11-06-20 21:15;extended;433,31;22;7,8;2;5;2;3;1;4;5;9;2;1;0;
+6;12-06-20 12:17;basic;362,15;46;29,33;2;3;3;5;0;2;0;11;1;1;0;
+6;12-06-20 12:35;extended;482,57;50;34,4;2;5;3;4;2;3;7;8;0;0;0;
+7;12-06-20 14:19;extended;458,07;84;33,25;2;4;2;5;2;2;9;10;0;3;2;lost connection for a little while
+7;12-06-20 14:37;basic;401,34;42;18,67;3;3;3;5;1;2;0;16;1;1;2;afterwards denotes the presence of compliments in v2
+8;14-06-20 10:14;extended;785,73;115;52,4;4;6;3;5;4;2;14;30;4;1;0;did not understand yes/no interaction
+8;14-06-20 10:54;basic;280,54;28;14;3;4;3;3;2;1;0;19;1;1;3;between games lost connection for 5 minutes
+9;14-06-20 19:15;extended;481,96;17;8,6;3;5;2;4;0;5;1;19;3;4;3;had to fill in first questionnaire 2 due to clicking it away
+9;14-06-20 19:41;basic;464,36;4;0,64;5;6;3;5;2;4;0;36;4;3;1;
+10;14-06-20 20:27;basic;543,35;11;3,56;4;5;2;4;1;4;0;35;8;1;2;
+10;14-06-20 20:44;extended;398,17;29;19,25;1;4;3;5;0;4;10;12;2;1;3;
+11;15-06-20 14:16;basic;357,28;10;2,71;3;4;3;5;0;4;0;24;4;0;4;
+11;15-06-20 14:25;extended;215,04;50;25,67;0;3;3;5;0;3;4;0;0;0;1;
+12;15-06-20 16:31;extended;280,47;54;54;1;1;3;5;0;1;2;12;3;4;0;At start no connection (short delay)
+12;15-06-20 16:41;basic;289,3;22;6,25;2;2;3;5;0;2;0;19;2;2;1;
+13;15-06-20 17:17;basic;353,19;4;0,67;3;3;1;5;1;2;0;25;0;1;1;
+13;15-06-20 17:32;extended;399,31;54;28,33;1;3;3;5;0;3;3;9;1;0;0;At start no connection (short delay)
+14;15-06-20 20:28;extended;366,89;12;8,67;3;3;3;4;0;3;3;16;2;1;2;
+14;15-06-20 20:41;basic;348,3;4;1;3;3;3;5;0;3;0;30;4;1;0;
+15;16-06-20 14:11;basic;364,95;6;1,2;2;3;3;4;0;3;0;28;2;0;2;Does not understand she can say 'fout' (intervention)
+15;16-06-20 14:24;extended;462,53;41;25,67;2;3;3;5;0;3;3;21;1;0;2;
+16;17-06-20 13:47;basic;464,81;9;3,43;3;4;3;5;0;4;0;26;1;0;3;
+16;17-06-20 13:31;extended;633,71;50;16,43;3;7;3;5;1;6;6;23;0;2;1;
+17;17-06-20 16:13;basic;381,19;32;9;2;2;3;3;0;2;0;21;1;0;2;
+17;17-06-20 16:21;extended;371,74;90;55,5;0;3;3;5;0;3;37;0;0;0;0;
+18;17-06-20 19:10;basic;365,06;71;27;1;2;3;4;1;1;0;8;0;1;3;
+18;17-06-20 18:57;extended;261,35;50;25;1;2;3;5;0;2;4;8;0;0;0;

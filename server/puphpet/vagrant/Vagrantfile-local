@@ -15,6 +15,7 @@ if Vagrant.has_plugin?('vagrant-hostmanager')
   config.hostmanager.enabled = true
   config.hostmanager.manage_host = true
 end
+
 machines.each do |i, machine|
   config.vm.define "#{machine['id']}" do |machine_id|
     machine_id.vm.box = "#{provider['box']}"

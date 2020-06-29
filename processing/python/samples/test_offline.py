@@ -8,13 +8,18 @@ import time
 # x = random.randrange(0, 4)
 # print(list(ingame_buttons)[x], ':', list(ingame_buttons)[x - 2])
 
-x = None
+# x = None
 
-if x:
-    print("True")
+# if x:
+#     print("True")
 
-if x == False:
-    print("False")
+# if x == False:
+#     print("False")
 
-if x == None:
-    print("None")
+# if x == None:
+#     print("None")
+
+print(None == False)
+
+# while(True):
+#     print(random.randrange(0, 1))

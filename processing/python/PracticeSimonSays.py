@@ -109,19 +109,19 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
             self.say("Ah jammer.")
             self.speechLock.acquire()
             return False
-
-        if self.response in list(self.speech_dict):
+        if  self.consecutive_missed > 2 or self.robot_score > 10:
+            self.consecutive_missed = 0
+            self.do_gesture("simonsayshost-a4203c/" + list(self.speech_dict.values())[random.randrange(0, 4)])
+            self.movementLock.acquire()
+        elif self.response in list(self.speech_dict):
             self.consecutive_missed = 0
             self.do_gesture("simonsayshost-a4203c/" +
                             self.speech_dict[self.response])
             self.movementLock.acquire()
             self.robot_score += 3
-        elif  self.consecutive_missed > 2 or self.robot_score > 10:
-            self.consecutive_missed = 0
-            self.do_gesture("simonsayshost-a4203c/" + list(self.speech_dict.values())[random.randrange(0, 4)])
-            self.movementLock.acquire()
         else:
             self.consecutive_missed += 1
+            self.robot_score += 3
             self.say("Sorry, ik kon je niet goed horen!")
             self.speechLock.acquire()
         return True

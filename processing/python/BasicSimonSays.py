@@ -128,16 +128,16 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
             self.speechLock.acquire()
             return False
 
-        if self.response in list(self.speech_dict):
+        if  self.consecutive_missed > 2 or self.robot_score > 10:
+            self.consecutive_missed = 0
+            self.do_gesture("simonsayshost-a4203c/" + list(self.speech_dict.values())[random.randrange(0, 4)])
+            self.movementLock.acquire()
+        elif self.response in list(self.speech_dict):
             self.consecutive_missed = 0
             self.do_gesture("simonsayshost-a4203c/" +
                             self.speech_dict[self.response])
             self.movementLock.acquire()
-            self.robot_score += 3
-        elif  self.consecutive_missed > 2 or self.robot_score > 10:
-            self.consecutive_missed = 0
-            self.do_gesture("simonsayshost-a4203c/" + list(self.speech_dict.values())[random.randrange(0, 4)])
-            self.movementLock.acquire()
+            self.robot_score += 2
         else:
             self.consecutive_missed += 1
             self.say("Sorry, ik kon je niet goed horen!")
@@ -182,6 +182,8 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
                     else:
                         self.lives_left -= 1
                         if self.lives_left > 0:
+                            self.say("Fout, maar je heb nog een leven.")
+                            self.speechLock.acquire()
                             continue
                         else:
                             self.times_player += 1
@@ -215,7 +217,6 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
                 self.score = 0
                 self.robot_score = 0
                 self.speechLock.acquire()
-                print(self.host)
                 if self.host:
                     self.say("Welk niveau wil je spelen, kies een getal tussen 1 tot 5.")
                     self.speechLock.acquire()
@@ -328,8 +329,8 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
             'avg_score': avg_score, 
             'times_host': self.times_host, 
             'times_player': self.times_player, 
-            'min_difficulty': self.min_difficulty, 
-            'max_difficulty': self.max_difficulty, 
+            'min_difficulty': self.min_difficulty + 1, 
+            'max_difficulty': self.max_difficulty + 1, 
             'times_missed_button': self.times_missed_button, 
             'times_too_late': self.times_too_late, 
             'times_robot_feedback': 0,
@@ -338,7 +339,7 @@ class SimonSays(Base.AbstractSICConnector):  # AbstractApplication):
 
         df = pd.read_excel("simon_says_data.xlsx")
         df = df.append(pd.DataFrame([list(row_dict.values())], columns=list(df.columns)))
-        df.to_excel("simon_says_data.xlsx", float_format="%.2f", columns=list(df.columns), index=False)
+        df.to_excel("data/simon_says_data_{}_basic.xlsx".format(id), float_format="%.2f", columns=list(df.columns), index=False)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -353,4 +354,4 @@ if __name__ == "__main__":
     except:
         pass
     finally:
-        wam.collect_data(sys.argv[1])
+        wam.collect_data(int(sys.argv[1]))

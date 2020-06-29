@@ -117,8 +117,8 @@ class SimonSays(Base.AbstractSICConnector):
         self.current_button = None
         if random.randrange(0, 7) == 0 and self.score / self.difficulty >= 2:
             #self.speak(self.speech_list)
-            self.say(self.speech_list[random.randrange(0, 5)])
-            self.speechLock.acquire()
+            self.speak(self.speech_list)
+            
             self.times_robot_feedback += 1
         else:
             time.sleep(self.generate_random(1.5, 2.5))
@@ -127,10 +127,10 @@ class SimonSays(Base.AbstractSICConnector):
         if random.getrandbits(1) and self.flipped[self.difficulty]:
             flipped_button = self.current_button[0] + \
                 'l' if self.current_button[1] == 'r' else self.current_button[0] + 'r'
-            self.say("Mijn" + self.ingame_buttons[flipped_button] + '!')
+            self.speak("Mijn" + self.ingame_buttons[flipped_button] + '!')
         else:
-            self.say(self.ingame_buttons[self.current_button] + '!')
-        self.speechLock.acquire()
+            self.speak(self.ingame_buttons[self.current_button] + '!')
+        
 
         t = self.time_to_press[self.difficulty] - self.score / (
             self.difficulty * .5) * 0.1 if self.time_to_press[self.difficulty] - self.score / (self.difficulty * .5) * 0.1 > 1 else 1
@@ -147,8 +147,8 @@ class SimonSays(Base.AbstractSICConnector):
     def guess(self):
         self.response = None
         self.button_pressed = None
-        self.say("Oké, ik luister.")
-        self.speechLock.acquire()
+        self.speak("Oké, ik luister.")
+        
         self.times_spoken += 1
 
         self.listen("make_move", ("linkervoet", "rechtervoet",
@@ -159,8 +159,8 @@ class SimonSays(Base.AbstractSICConnector):
 
         if self.response == "fout" or self.button_pressed in list(self.button_dict):
             self.consecutive_missed = 0
-            self.say("Ah jammer, ik had het mis.")
-            self.speechLock.acquire()
+            self.speak("Ah jammer, ik had het mis.")
+            
             return False
 
         if self.response in list(self.speech_dict):
@@ -171,8 +171,8 @@ class SimonSays(Base.AbstractSICConnector):
                 self.movementLock.acquire()
 
                 if random.randrange(0, 4) == 0:
-                    self.say(self.hard_list[random.randrange(0, 4)])
-                    self.speechLock.acquire()
+                    self.speak(self.hard_list)
+                    
                     self.times_robot_feedback += 1
 
             else:
@@ -183,39 +183,39 @@ class SimonSays(Base.AbstractSICConnector):
                 self.robot_score += 3
         else:
             self.consecutive_missed += 1
-            self.say("Sorry, ik kon je niet goed horen!")
-            self.speechLock.acquire()
+            self.speak("Sorry, ik kon je niet goed horen!")
+            
             self.times_misheard += 1
         return True
 
     # Explanation of the game where the robot shows what the player is supposed to do
     def explain_game(self):
 
-        self.say("Hé, leuk dat je Commando Robot met mij wilt spelen. \
+        self.speak("Hé, leuk dat je Commando Robot met mij wilt spelen. \
             Ik zal het proberen uit te leggen. Er zijn twee manieren om het spel te spelen. \
             De eerste manier is dat ik zeg wat jij aan moet tikken en de tweede manier is dat jij zegt wat ik moet bewegen.")
-        self.speechLock.acquire()
+        
 
         self.set_leds({"name": "rotate", "colour": 0x0033FF33,
                        "rotation_time": 1, "time": 4})
-        self.say("Mijn ogen zullen draaien, zoals ze nu doen, als je kunt drukken op mijn knoppen. \
+        self.speak("Mijn ogen zullen draaien, zoals ze nu doen, als je kunt drukken op mijn knoppen. \
                 Hetzelfde geldt voor wanneer ik luister terwijl jij spelleider bent. \
                 Laten we beginnen met een oefenronde. Ik zeg iets en jij moet op de knop drukken.")
-        self.speechLock.acquire()
+        
 
         while not self.create_mole():
             if self.can_press:
-                self.say(
+                self.speak(
                     "Ah, je was niet snel genoeg. We proberen het nog een keer.")
-                self.speechLock.acquire()
+                
                 self.can_press = False
             else:
-                self.say(
+                self.speak(
                     "Ah, dat was de verkeerde knop. We proberen het nog een keer.")
-                self.speechLock.acquire()
+                
 
-        self.say("Jippie, dat is precies zoals het moet.")
-        self.speechLock.acquire()
+        self.speak("Jippie, dat is precies zoals het moet.")
+        
 
     def check_response(self):
         if self.response:
@@ -223,9 +223,9 @@ class SimonSays(Base.AbstractSICConnector):
             self.consecutive_role = 0
 
         if self.response == None and self.playing:
-            self.say(
+            self.speak(
                 "Sorry, ik kon je niet verstaan. Druk op mijn hoofd als je aan de beurt wilt blijven.")
-            self.speechLock.acquire()
+            
 
             time.sleep(3)
             if not self.playing:
@@ -233,39 +233,36 @@ class SimonSays(Base.AbstractSICConnector):
             else:
                 self.host = not self.host
                 self.consecutive_role = 0
-                self.say("Okay, dan wisselen we.")
-                self.speechLock.acquire()
+                self.speak("Okay, dan wisselen we.")
+                
                 self.playing = True
 
     def ask_to_stop(self):
-        self.say("Zullen we nog een potje doen?")
-        self.speechLock.acquire()
+        self.speak("Zullen we nog een potje doen?")
+        
         self.listen("answer_closed", ("ja", "nee", "graag"), 3)
 
         if self.response == False:
-            return True
+            return False
 
         self.consecutive_role += 1
         role = "speler" if self.host else "spelleider"
         self.response = None
         if self.consecutive_role > 5:
-            self.say("Oké nu is het mijn beurt om {} te zijn.".format(role))
-            self.speechLock.acquire()
+            self.speak("Oké nu is het mijn beurt om {} te zijn.".format(role))
+            
             self.host = not self.host
             self.consecutive_role = 0
-            return False
         elif self.consecutive_role > 3:
-            self.say("Mag ik nu {} zijn?".format(role))
-            self.speechLock.acquire()
+            self.speak("Mag ik nu {} zijn?".format(role))
+            
             self.listen("answer_closed", ("ja", "nee", "graag"), 3)
             self.check_response()
-            return False
         else:
-            self.say("Wil je wisselen?".format(role))
-            self.speechLock.acquire()
+            self.speak("Wil je wisselen?".format(role))
+            
             self.listen("answer_closed", ("ja", "nee", "graag"), 3)
             self.check_response()
-            return False
 
         # if change role reset consecutive_role
 
@@ -273,20 +270,20 @@ class SimonSays(Base.AbstractSICConnector):
         if self.difficulty == 0:
             if self.lives_left == 3:
                 self.lives_left = 2
-            self.say("Oké, is kijken of je het sneller kunt!")
+            self.speak("Oké, is kijken of je het sneller kunt!")
         elif self.difficulty == 1:
             if self.lives_left > 1:
                 self.lives_left = 1
-            self.say("Dat gaat goed. Je hebt geen extra levens meer")
+            self.speak("Dat gaat goed. Je hebt geen extra levens meer")
         elif self.difficulty == 2:
-            self.say("Wauw, goed bezig. Laten we het wat moeilijker maken!")
+            self.speak("Wauw, goed bezig. Laten we het wat moeilijker maken!")
         elif self.difficulty == 3:
-            self.say("Ongelofelijk. Ik maak het nu zo moeilijk als mogelijk!")
+            self.speak("Ongelofelijk. Ik maak het nu zo moeilijk als mogelijk!")
         self.difficulty += 1
         if self.max_difficulty < self.difficulty:
             self.max_difficulty = self.difficulty
         self.turns_on_difficulty = 0
-        self.speechLock.acquire()
+        
 
     def run_until_quit(self):
         # Call button and wait for response
@@ -298,14 +295,14 @@ class SimonSays(Base.AbstractSICConnector):
                     if self.turns_on_difficulty >= 10 and not self.difficulty == 4:
                         self.change_difficulty()
                     elif self.turns_on_difficulty == 10:
-                        self.say("Wauw, je bent echt niet te stoppen!")
-                        self.speechLock.acquire()
+                        self.speak("Wauw, je bent echt niet te stoppen!")
+                        
                         self.times_robot_feedback += 1
 
-                    if self.score - 1 == self.high_score and self.high_score != 0:
-                        self.say(
+                    if self.score > self.high_score and self.high_score != 0:
+                        self.speak(
                             "Wow, je hebt je high score verbeterd! Ga zo door!")
-                        self.speechLock.acquire()
+                        
                         self.times_robot_feedback += 1
 
                     if self.create_mole():
@@ -314,38 +311,34 @@ class SimonSays(Base.AbstractSICConnector):
                     else:
                         self.lives_left -= 1
                         if self.lives_left > 0:
-                            self.say("Ah, dat was niet goed, je hebt nog {:d} levens. Je kunt het!".format(
+                            self.speak("Ah, dat was niet goed, je hebt nog {:d} levens. Je kunt het!".format(
                                 self.lives_left))
-                            self.speechLock.acquire()
+                            
                             continue
                         else:
                             if self.can_press:
-                                self.say(
+                                self.speak(
                                     "Ah jammer, je was niet snel genoeg. Je score was {:d}!".format(self.score))
                                 self.times_too_late += 1
                             else:
-                                self.say(
+                                self.speak(
                                     "Ah jammer, dat was de verkeerde knop. Je score was {:d}!".format(self.score))
                                 self.times_missed_button += 1
-                            self.speechLock.acquire()
+                            
                             self.scores.append(self.score)
                             self.times_player += 1
 
                             self.last_score = self.score
-                            if not self.playing:
-                                break
                             if self.score > self.high_score:
                                 self.high_score = self.score
-                            if not self.playing:
-                                break
                             if self.score < 5 and self.difficulty > 0:
                                 self.difficulty -= 1
                                 if self.min_difficulty > self.difficulty:
                                     self.min_difficulty = self.difficulty
                                 self.lives_left = self.lives[self.difficulty]
-                                self.say(
+                                self.speak(
                                     "Oké, dit was misschien wat te moeilijk, maar dat maakt niet uit. We maken het gewoon iets makkelijker.")
-                                self.speechLock.acquire()
+                                
                             self.score = 0
 
                             if not self.playing:
@@ -361,22 +354,22 @@ class SimonSays(Base.AbstractSICConnector):
                             break
                         # Something whether to stop or keep playing increase/decrease difficulty
 
-            self.say(
+            self.speak(
                 "Wil je echt niet meer spelen? Als je toch door wil gaan moet je op een knop drukken.")
-            self.speechLock.acquire()
+            
             self.current_button = None
             self.can_press = True
-            self.buttonLock.acquire(timeout=5)
+            self.buttonLock.acquire(timeout=3)
             self.can_press = False
             if not self.current_button:
                 break
-        self.say("Oké we stoppen.")
-        self.speechLock.acquire()
+        self.speak("Oké we stoppen.")
+        
         if time.time() - self.start_time > 300:
-            self.say("Ik vond het gezellig!")
+            self.speak("Ik vond het gezellig!")
         else:
-            self.say("Jammer, dat je nu al wilt stoppen. Hopelijk tot snel!")
-        self.speechLock.acquire()
+            self.speak("Jammer, dat je nu al wilt stoppen. Hopelijk tot snel!")
+        
         self.follow_face(False)
         self.faceLock.acquire()
 
@@ -401,8 +394,8 @@ class SimonSays(Base.AbstractSICConnector):
             self.explain_game()
 
         # Start of game message
-        self.say("Laten we beginnen. Druk op mijn hoofd om the stoppen!")
-        self.speechLock.acquire()
+        self.speak("Laten we beginnen. Druk op mijn hoofd om the stoppen!")
+        
 
         self.run_until_quit()
 
@@ -457,7 +450,7 @@ class SimonSays(Base.AbstractSICConnector):
             elif args[0] == 'nee':
                 self.response = False
             else:
-                self.response = True
+                self.response = None
 
     # Collects data at the end of the play interaction and appends it as row to excel file
     def collect_data(self, id):
@@ -471,8 +464,8 @@ class SimonSays(Base.AbstractSICConnector):
             'avg_score': avg_score,
             'times_host': self.times_host,
             'times_player': self.times_player,
-            'min_difficulty': self.min_difficulty + 1,
-            'max_difficulty': self.max_difficulty + 1,
+            'min_difficulty': self.min_difficulty,
+            'max_difficulty': self.max_difficulty,
             'times_missed_button': self.times_missed_button,
             'times_too_late': self.times_too_late,
             'times_robot_feedback': self.times_robot_feedback,
@@ -482,7 +475,7 @@ class SimonSays(Base.AbstractSICConnector):
         df = pd.read_excel("simon_says_data.xlsx")
         df = df.append(pd.DataFrame(
             [list(row_dict.values())], columns=list(df.columns)))
-        df.to_excel("data/simon_says_data_{}_Extended.xlsx".format(id), float_format="%.2f",
+        df.to_excel("simon_says_data.xlsx", float_format="%.2f",
                     columns=list(df.columns), index=False)
 
 
